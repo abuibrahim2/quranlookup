@@ -2,8 +2,27 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import Fuse from 'fuse.js'
 // Remember to rename these classes and interfaces!
 
+const EnTranslations: Record<number, string> = {
+	0: "en.ahmedali",
+	1: "en.ahmedraza",
+	2: "en.arberry",
+	3: "en.asad",
+	4: "en.daryabadi",
+	5: "en.hilali",
+	6: "en.pickthall",
+	7: "en.qaribullah",
+	8: "en.sahih",
+	9: "en.sarwar",
+	10: "en.yusufali",
+	11: "en.maududi",
+	12: "en.shakir",
+	13: "en.transliteration",
+	14: "en.itani",
+};
+
 interface MyPluginSettings {
-	mySetting: string;
+	translatorIndex: number;
+	removeParens: boolean;
 }
 
 interface surahMeta {
@@ -17,7 +36,8 @@ interface ArKeys { verseNum: number, arText: string }
 interface EnKeys { verseNum: number, enText: string }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+	translatorIndex: 5,
+	removeParens: true
 }
 
 export default class MyPlugin extends Plugin {
@@ -151,7 +171,7 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-
+	// Get a range of Ayaat
 	async getAyahRange(verse: string): Promise<string> {
 		// parsing surah number, ayah range, start/end ayah
 		let surah = verse.split(":")[0];
@@ -160,19 +180,22 @@ export default class MyPlugin extends Plugin {
 		const endAyah = parseInt(ayahRangeText.split("-")[1]);
 		const ayahRange = endAyah - startAyah;
 
-		const urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/en.hilali?offset="+startAyah+"&limit="+ayahRange;
+		const translator = EnTranslations[this.settings.translatorIndex];
+
+		const urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/" + translator + "?offset="+startAyah+"&limit="+ayahRange;
 		const urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+startAyah+"&limit="+ayahRange;
 
 		let surahNumber:string[], surahAndAyah:string;
 		let arKeys:ArKeys[], enKeys:EnKeys[];
+		const removeParens = this.settings.removeParens;
 
-		let totalText = await fetch(urlArabic)
+		const totalText = await fetch(urlArabic)
 			.then(function(response) {
 				return response.json();
 			})
 			.then(function(data) {
 				const arText = data.data.ayahs;
-				arKeys = arText.map((val): ArKeys => ({ verseNum: parseInt(val.numberInSurah), arText: val.text }));
+				arKeys = arText.map((val: any): ArKeys => ({ verseNum: parseInt(val.numberInSurah), arText: val.text }));
 				console.log(arKeys);
 			})
 			.then(()=>fetch(urlEnglis)
@@ -182,7 +205,16 @@ export default class MyPlugin extends Plugin {
 				.then(function(data) {
 					console.log(data);
 					const enText = data.data.ayahs;
-					enKeys = enText.map((val: any): EnKeys => ({ verseNum: parseInt(val.numberInSurah), enText: val.text.replace(/ *\([^)]*\) */g, " ") }));
+					
+					enKeys = enText.map((val: any): EnKeys => ({ verseNum: parseInt(val.numberInSurah), 
+						enText: (removeParens ? 
+							val.text
+								.replace(/ *\([^)]*\)*/g, "") // remove ()
+								.replace(/ *\[[^)]*\] */g, " ") // remove []
+								.replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
+							: val.text) }));
+
+					//enKeys = enText.map((val: any): EnKeys => ({ verseNum: parseInt(val.numberInSurah), enText: (removeParens ? val.text.replace(/[\(\[].*?[\)\]] */g, " ").replace(/\s+([.,!":])/g, "$1") : val.text) }));
 					//enText = data.data.ayahs.map((a: { text: any; }) => a.text.replace(/ *\([^)]*\) */g, " "));
 					//enText = data.data.ayahs[0].text.replace(/ *\([^)]*\) */g, " ");
 					surah = data.data.englishName;
@@ -211,15 +243,17 @@ export default class MyPlugin extends Plugin {
 
 		return totalText;
 	}
-
+	// Get a single Ayah
 	async getAyah(verse: string): Promise<string> {
 		let surah = verse.split(":")[0];
 		const ayah = parseInt(verse.split(":")[1])-1;
+		const translator = EnTranslations[this.settings.translatorIndex];
 
-		const urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/en.hilali?offset="+ayah+"&limit=1";
+		const urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/" + translator + "?offset="+ayah+"&limit=1";
 		const urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+ayah+"&limit=1";
 		
 		let arText:string, enText:string, surahNumber:string, ayahNumber:string, surahAndAyah:string;
+		const removeParens = this.settings.removeParens;
 
 		const totalText = await fetch(urlArabic)
 			.then(function(response) {
@@ -233,9 +267,16 @@ export default class MyPlugin extends Plugin {
 				.then(function(response) {
 					return response.json();
 				})
-				.then(function(data) {
+				.then(function(data) { // 
 					console.log(data);
-					enText = "> " + data.data.ayahs[0].text.replace(/ *\([^)]*\) */g, " ");
+					enText = "> " + (removeParens ? 
+						data.data.ayahs[0].text
+							.replace(/ *\([^)]*\)*/g, "") // remove ()
+							.replace(/ *\[[^)]*\] */g, " ") // remove []
+							.replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
+						: data.data.ayahs[0].text);
+					
+					//enText = "> " + (removeParens ? data.data.ayahs[0].text.replace(/[\(\[].*?[\)\]] */g, " ").replace(/\s+([.,!":])/g, "$1") : data.data.ayahs[0].text);
 					surah = data.data.englishName;
 			
 					surahNumber = data.data.number;
@@ -285,18 +326,41 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl('h2', {text: 'Quran Lookup Settings'});
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+			.setName('Translation Type')
+			.setDesc('Which english translation to use')
+			.addDropdown((dropdown) => { dropdown
+				.addOptions(EnTranslations)
+				.setValue(this.plugin.settings.translatorIndex.toString())
 				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.translatorIndex = +value
+					console.log(this.plugin.settings.translatorIndex);
 					await this.plugin.saveSettings();
-				}));
+					this.display();
+				});
+			});
+
+			/* .addText(text => text
+				.setPlaceholder('Choose English Translation')
+				.setValue("" + this.plugin.settings.translatorIndex)
+				.onChange(async (value) => {
+					console.log('Index: ' + value);
+					this.plugin.settings.translatorIndex = parseInt(value);
+					await this.plugin.saveSettings();
+				})); */
+		new Setting(containerEl)
+			.setName('Remove Parenthesis Content')
+			.setDesc('If true, removes the added translator content that would normally appear in parenthesis')
+			.addToggle((toggle) => {
+				toggle
+					.setValue(this.plugin.settings.removeParens)
+					.onChange(async (removeParens) => {
+						this.plugin.settings.removeParens = removeParens;
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			});
 	}
 }
