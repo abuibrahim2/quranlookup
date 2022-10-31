@@ -7,15 +7,14 @@ interface MyPluginSettings {
 }
 
 interface surahMeta {
-	place: string;
-	type: string;
-	count: string;
+	index: string;
 	title: string;
 	titleAr: string;
-	index: string;
-	pages: string;
-	juz: any[];
+	count: string;
 }
+
+interface ArKeys { verseNum: number, arText: string }
+interface EnKeys { verseNum: number, enText: string }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
@@ -29,14 +28,11 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		this.surahJson = require('./surah.json');
-		this.surahList = this.surahJson.map(m => m.title);
 
-		const options = {
-			keys: [
-			  "title"
-			]
-		  };
+		// Setup the sura name list for fuzzy recall
+		this.surahJson = require('./surahSlim.json');
+		this.surahList = this.surahJson.map(m => m.title);
+		const options = { keys: ["title"] };
 		this.fuse = new Fuse(this.surahJson, options);
 
 		// This creates an icon in the left ribbon.
@@ -65,18 +61,19 @@ export default class MyPlugin extends Plugin {
 			id: 'ayah-list-command',
 			name: 'Get Ayaat list',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				var ayaat = editor.getSelection().split(" ").filter(Boolean);
-				var totalT:string = "";
-				var verseText:string = "";
+				// tokenize verse shorthand
+				const ayaat = editor.getSelection().split(" ").filter(Boolean);
+				let totalT = "";
+				let verseText = "";
 
 				for (const verse of ayaat) {
-					var rVerse = verse;
+					let rVerse = verse;
 					
 					// Deal with written surah names
-					var surah = verse.split(":")[0];
+					const surah = verse.split(":")[0];
 					if (isNaN(parseInt(surah))) {
-						var surahIndex:number = 0;
-						var surahNum = this.fuse.search(surah)[0].item;
+						let surahIndex = 0;
+						const surahNum = this.fuse.search(surah)[0].item;
 						if (surahNum != undefined) {
 							surahIndex = parseInt((surahNum as surahMeta).index);
 						}
@@ -89,18 +86,18 @@ export default class MyPlugin extends Plugin {
 						verseText = await this.getAyah(rVerse) + '\n';
 					}
 					totalT += verseText + '\n';
-				};
+				}
 				editor.replaceSelection(totalT);
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
- 		this.addCommand({
+		this.addCommand({
 			id: 'surah-number-command',
 			name: 'Find Surah number',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				var surahName = editor.getSelection(); 
-				var surahIndex:number = 0;
-				var surahNum = this.fuse.search(surahName)[0].item;
+				const surahName = editor.getSelection(); 
+				let surahIndex = 0;
+				const surahNum = this.fuse.search(surahName)[0].item;
 				/*var surahNum = this.surahJson.find((obj) => {
 					return obj.title === surahName;
 				  });*/
@@ -156,31 +153,27 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async getAyahRange(verse: string): Promise<string> {
-		let totalText:string;
-		var surah = verse.split(":")[0];
-		var ayahRangeText = verse.split(":")[1];
-		var startAyah = parseInt(ayahRangeText.split("-")[0])-1;
-		var endAyah = parseInt(ayahRangeText.split("-")[1]);
-		var ayahRange = endAyah - startAyah;
+		// parsing surah number, ayah range, start/end ayah
+		let surah = verse.split(":")[0];
+		const ayahRangeText = verse.split(":")[1];
+		const startAyah = parseInt(ayahRangeText.split("-")[0])-1;
+		const endAyah = parseInt(ayahRangeText.split("-")[1]);
+		const ayahRange = endAyah - startAyah;
 
-		var urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/en.hilali?offset="+startAyah+"&limit="+ayahRange;
-		var urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+startAyah+"&limit="+ayahRange;
+		const urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/en.hilali?offset="+startAyah+"&limit="+ayahRange;
+		const urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+startAyah+"&limit="+ayahRange;
 
-		let arText:any[], enText:any[], surahNumber:string[], ayahNumber:string[], surahAndAyah:string;
-		interface ArKeys { verseNum: number, arText: string };
-		interface EnKeys { verseNum: number, enText: string };
-		interface BothKeys { verseNum: number, arText: string, enText: string };
-
+		let surahNumber:string[], surahAndAyah:string;
 		let arKeys:ArKeys[], enKeys:EnKeys[];
 
-		totalText = await fetch(urlArabic)
+		let totalText = await fetch(urlArabic)
 			.then(function(response) {
 				return response.json();
 			})
 			.then(function(data) {
-				 arText = data.data.ayahs;
-				 arKeys = arText.map((val: any): ArKeys => ({ verseNum: parseInt(val.numberInSurah), arText: val.text }));
-				 console.log(arKeys);
+				const arText = data.data.ayahs;
+				arKeys = arText.map((val): ArKeys => ({ verseNum: parseInt(val.numberInSurah), arText: val.text }));
+				console.log(arKeys);
 			})
 			.then(()=>fetch(urlEnglis)
 				.then(function(response) {
@@ -188,7 +181,7 @@ export default class MyPlugin extends Plugin {
 				})
 				.then(function(data) {
 					console.log(data);
-					enText = data.data.ayahs;
+					const enText = data.data.ayahs;
 					enKeys = enText.map((val: any): EnKeys => ({ verseNum: parseInt(val.numberInSurah), enText: val.text.replace(/ *\([^)]*\) */g, " ") }));
 					//enText = data.data.ayahs.map((a: { text: any; }) => a.text.replace(/ *\([^)]*\) */g, " "));
 					//enText = data.data.ayahs[0].text.replace(/ *\([^)]*\) */g, " ");
@@ -202,11 +195,11 @@ export default class MyPlugin extends Plugin {
 					console.log(surahAndAyah);
 					console.log( "success" );
 
-					var strAdder = surahAndAyah + '\n'
+					let strAdder = surahAndAyah + '\n'
 
-					let groupings = arKeys.map(itm => ({
-					  ...enKeys.find((item) => (item.verseNum === itm.verseNum) && item),
-					  ...itm
+					const groupings = arKeys.map(itm => ({
+						...enKeys.find((item) => (item.verseNum === itm.verseNum) && item),
+						...itm
 					}));
 					for (const g of groupings) {
 						strAdder += "> " + g.arText + '\n' + "> " + (g.enText as string) + "\n>\n";
@@ -220,21 +213,21 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async getAyah(verse: string): Promise<string> {
-		var surah = verse.split(":")[0];
-		var ayah = parseInt(verse.split(":")[1])-1;
+		let surah = verse.split(":")[0];
+		const ayah = parseInt(verse.split(":")[1])-1;
 
-		var urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/en.hilali?offset="+ayah+"&limit=1";
-		var urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+ayah+"&limit=1";
+		const urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/en.hilali?offset="+ayah+"&limit=1";
+		const urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+ayah+"&limit=1";
 		
 		let arText:string, enText:string, surahNumber:string, ayahNumber:string, surahAndAyah:string;
 
-		let totalText = await fetch(urlArabic)
+		const totalText = await fetch(urlArabic)
 			.then(function(response) {
 				return response.json();
 			})
 			.then(function(data) {
-				 arText = "> " + data.data.ayahs[0].text;
-				 console.log(arText);
+				arText = "> " + data.data.ayahs[0].text;
+				console.log(arText);
 			})
 			.then(()=>fetch(urlEnglis)
 				.then(function(response) {
