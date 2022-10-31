@@ -17,7 +17,7 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('dice', 'Quran Lookup', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			new Notice('This is a notice!');
 		});
@@ -26,7 +26,7 @@ export default class MyPlugin extends Plugin {
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+		statusBarItemEl.setText('Quran Lookup Text');
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
@@ -42,7 +42,63 @@ export default class MyPlugin extends Plugin {
 			name: 'Sample editor command',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
 				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
+				var verse = editor.getSelection();
+				var surah = verse.split(":")[0];
+				var ayah = parseInt(verse.split(":")[1])-1;
+
+				var urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/en.hilali?offset="+ayah+"&limit=1";
+				var urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+ayah+"&limit=1";
+				
+				let arText:string;
+				let enText:string;
+				surah;
+				let surahNumber:string;
+				let ayahNumber:string;
+				let surahAndAyah;
+				
+				//console.log(content);
+				
+				fetch(urlArabic)
+					.then(function(response) {
+						return response.json();
+					})
+					.then(function(data) {
+						 arText = "> " + data.data.ayahs[0].text;
+						 //document.getElementById("arabicVerseText").innerHTML = arText;
+						 //content.children[1].innerHTML = arText;
+						 console.log(arText);
+						 //editor.replaceSelection(arText);
+					})
+					.then(()=>fetch(urlEnglis)
+						.then(function(response) {
+							return response.json();
+						})
+						.then(function(data) {
+							console.log(data);
+							// enText = data.data.text;
+							enText = "> " + data.data.ayahs[0].text.replace(/ *\([^)]*\) */g, " ");
+							surah = data.data.englishName;
+					
+							surahNumber = data.data.number;
+							ayahNumber = data.data.ayahs[0].numberInSurah;
+							surahAndAyah = "> [!TIP]+ " + surah + " (" + surahNumber + ":"+ ayahNumber + ")" 
+					
+							//content.children[2].innerHTML = enText;
+							//content.children[0].innerHTML = surahAndAyah;
+							
+							console.log(enText);
+							console.log(enText.replace(/ *\([^)]*\) */g, " "));
+							console.log(surah);
+							console.log(ayahNumber);
+							console.log( "success" );
+
+							let totalText = surahAndAyah + '\n' + arText + '\n' + enText;
+							editor.replaceSelection(totalText);
+						})
+					);
+
+
+				//editor.replaceSelection('Sample Editor Command');
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
@@ -88,6 +144,64 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	getQuote(verse: string) {
+		// var ayah = Math.floor(Math.random() * 6236) + 1 
+		// var url = "https://api.alquran.cloud/ayah/"+ayah+"/en.asad";
+		// var urlArabic = "https://api.alquran.cloud/ayah/"+ayah;
+		
+		// https://api.alquran.cloud/v1/surah/14/en.asad?offset=46&limit=1
+		var surah = verse.split(":")[0];
+		var ayah = parseInt(verse.split(":")[1])-1;
+		var urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/en.hilali?offset="+ayah+"&limit=1";
+		//var urlArabic = "https://api.alquran.cloud/ayah/"+ayah;
+		var urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+ayah+"&limit=1";
+		
+		let arText:string;
+		let enText:string;
+		surah;
+		let surahNumber:string;
+		let ayahNumber:string;
+		let surahAndAyah;
+		
+		//console.log(content);
+		
+		fetch(urlArabic)
+		    .then(function(response) {
+				return response.json();
+			})
+			.then(function(data) {
+			 	arText = "> " + data.data.ayahs[0].text;
+			 	//document.getElementById("arabicVerseText").innerHTML = arText;
+			 	//content.children[1].innerHTML = arText;
+			 	console.log(arText);
+		  	}
+		);
+
+		fetch(urlEnglis)
+		    .then(function(response) {
+				return response.json();
+			})
+			.then(function(data) {
+				console.log(data);
+				// enText = data.data.text;
+				enText = "> " + data.data.ayahs[0].text.replace(/ *\([^)]*\) */g, " ");
+				surah = data.data.englishName;
+		
+				surahNumber = data.data.number;
+				ayahNumber = data.data.ayahs[0].numberInSurah;
+				surahAndAyah = "> [!TIP]+ " + surah + " (" + surahNumber + ":"+ ayahNumber + ")" 
+		
+				//content.children[2].innerHTML = enText;
+				//content.children[0].innerHTML = surahAndAyah;
+				
+				console.log(enText);
+				console.log(enText.replace(/ *\([^)]*\) */g, " "));
+				console.log(surah);
+				console.log(ayahNumber);
+				console.log( "success" );
+		  	});
 	}
 }
 
