@@ -53,6 +53,8 @@ This plugin has some small customizations: in `Community Plugins > Installed Plu
 ### Remove Parenthesis Contents
 - Many translations add additional commentary and explanation in parenthesis and brackets to make the english more readable or flow or to better explain a complex word. If enabled, this feature removes that additional text so that the translation succinct.
 
+![obsidian quran remove paren](/docs/quran-lookup-remove-paren.png?raw=true)
+
 ## The Quran API and Source(s)
 The Quran verses are currently powered by
 - [alquran.cloud](https://alquran.cloud/api) : An opensource Quran API made by the [Islamic Network](https://islamic.network/) ([github](https://github.com/islamic-network)) and respective [contributors](https://alquran.cloud/contributors).
