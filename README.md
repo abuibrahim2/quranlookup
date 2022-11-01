@@ -23,7 +23,9 @@ It looks up based on `Surah-Number:Ayah-Number` or `Surah-Name:Ayah-Number` synt
 
 ## Settings
 This plugin has some small customizations: in `Community Plugins > Installed Plugins > QuranLookup (Options)`
-![obsidian quran lookup settings](https://raw.githubusercontent/)
+
+![obsidian quran lookup settings](https://raw.githubusercontent.com/milkperson/quranlookup/master/docs/settings.png)
+
 ### Translation Types
 - You can choose from a variety of english translation types based on the [API language selections](http://api.alquran.cloud/v1/edition/language/en):
   - en.ahmedali : Ahmed Ali
