@@ -10,8 +10,12 @@ It looks up based on `Surah-Number:Ayah-Number` or `Surah-Name:Ayah-Number` synt
 - Single Ayah lookup
   - `112:1`
 
+![obsidian quran lookup single](/docs/quran-lookup-single.gif?raw=true)
+
 - Multiple Ayaat range
   - `56:24-26`
+
+![obsidian quran lookup range](/docs/quran-lookup-range.gif?raw=true)
 
 - Fuzzy search surah title
   - `Zumar:3-5`
@@ -21,10 +25,12 @@ It looks up based on `Surah-Number:Ayah-Number` or `Surah-Name:Ayah-Number` synt
 - Chained together in single line (separated by spaces)
   - `Zumar:12 6:10-11 7:3-4 Maryam:12 1:3`
 
+![obsidian quran lookup range](/docs/quran-lookup-chained.gif?raw=true)
+
 ## Settings
 This plugin has some small customizations: in `Community Plugins > Installed Plugins > QuranLookup (Options)`
 
-![obsidian quran lookup settings](https://raw.githubusercontent.com/milkperson/quranlookup/master/docs/settings.png?token=GHSAT0AAAAAAB2SMVRXRWD3AM6U4XXNODREY3AK5UQ)
+![obsidian quran lookup settings](/docs/settings.png?raw=true)
 
 ### Translation Types
 - You can choose from a variety of english translation types based on the [API language selections](http://api.alquran.cloud/v1/edition/language/en):
