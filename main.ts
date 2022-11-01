@@ -79,7 +79,7 @@ export default class MyPlugin extends Plugin {
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
 			id: 'ayah-list-command',
-			name: 'Get Ayaat list',
+			name: 'Retrieve Ayaat',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				// tokenize verse shorthand
 				const ayaat = editor.getSelection().split(" ").filter(Boolean);
@@ -108,23 +108,6 @@ export default class MyPlugin extends Plugin {
 					totalT += verseText + '\n';
 				}
 				editor.replaceSelection(totalT);
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'surah-number-command',
-			name: 'Find Surah number',
-			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const surahName = editor.getSelection(); 
-				let surahIndex = 0;
-				const surahNum = this.fuse.search(surahName)[0].item;
-				/*var surahNum = this.surahJson.find((obj) => {
-					return obj.title === surahName;
-				  });*/
-				if (surahNum != undefined) {
-					surahIndex = parseInt((surahNum as surahMeta).index);
-				}
-				editor.replaceSelection('' + surahIndex);
 			}
 		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
