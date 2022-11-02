@@ -84,7 +84,7 @@ The lookup uses api.alquran.cloud API to lookup the verses by surah and verse nu
 For the fuzzy name search, it uses a simple index file surahSlim.json and fuse.js to find the closest sura name and retrieve it's index number.
 
 ## Future Feature Ideas
-- [ ] Add error handling for 'surah not found' or 'ayah index out of range'
+- [ ] Add error notification for 'surah not found' or 'ayah index out of range' (currently doesn't do anything if invalid string is attempted to be upon)
 - [ ] Show the translator name in the settings
 - [ ] Toggle Display of verses callout sections: e.g. show Arabic Only, Translation Only
 - [ ] Right-To-Left alignment for Arabic text
