@@ -93,7 +93,7 @@ For the fuzzy name search, it uses a simple index file surahSlim.json and fuse.j
 - [ ] Add "Offline Mode" option which downlaods and retrieves verses and translations from the locally saved vault rather than calling API
 - [ ] Add command to search for an ayah using search API (displaying results in a dialog)
 - [ ] Add audio playback capabilities to playback the verse
-- Other ideas?... feel free [to suggest](https://github.com/milkperson/quranlookup/issues)!
+- Other ideas?... feel free [to suggest](https://github.com/abuibrahim2/quranlookup/issues)!
 ## Manually installing the plugin
 
 - Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/quranlookup/`.
@@ -102,7 +102,7 @@ For the fuzzy name search, it uses a simple index file surahSlim.json and fuse.j
 
 ## How to Contribute
 I'm one person who just quickly put this together because I wanted this capability in my notes. This is still in need of much refactoring and improvement.
-- [For Issues or Feature Requests](https://github.com/milkperson/quranlookup/issues)
+- [For Issues or Feature Requests](https://github.com/abuibrahim2/quranlookup/issues)
 - [For making Contributions](./CONTRIBUTING.md)
 
 ## Similar Projects
