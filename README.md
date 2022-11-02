@@ -67,10 +67,11 @@ This plugin has some small customizations: in `Community Plugins > Installed Plu
 ![obsidian quran remove paren](/docs/quran-lookup-remove-paren.png?raw=true)
 
 - NOTE: This is experimental and while I have tried to test it, it may not work 100% all the time so extra eyes QA'ing it are appreciated!
-## The Quran API and Source(s)
-The Quran verses are currently powered by
+## Attributions
+### The Quran API and Source(s)
+The Quran verses are retrieved from
 - [alquran.cloud](https://alquran.cloud/api) : An opensource Quran API made by the [Islamic Network](https://islamic.network/) ([github](https://github.com/islamic-network)) and respective [contributors](https://alquran.cloud/contributors).
-## Fuzzy Search
+### Fuzzy Search
 The Fuzzy search feature is made possible using
 - [Fuze.js](https://fusejs.io/) : A powerful lightweight fuzzy-search library, with zero dependencies ([github](https://github.com/krisk/Fuse))
 ## How to use
