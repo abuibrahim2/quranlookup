@@ -1,5 +1,6 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import Fuse from 'fuse.js'
+import { start } from 'repl';
 // Remember to rename these classes and interfaces!
 
 const EnTranslations: Record<number, string> = {
@@ -20,7 +21,7 @@ const EnTranslations: Record<number, string> = {
 	14: "en.itani",
 };
 
-interface MyPluginSettings {
+interface QuranLookupPluginSettings {
 	translatorIndex: number;
 	removeParens: boolean;
 }
@@ -35,13 +36,13 @@ interface surahMeta {
 interface ArKeys { verseNum: number, arText: string }
 interface EnKeys { verseNum: number, enText: string }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: QuranLookupPluginSettings = {
 	translatorIndex: 5,
 	removeParens: true
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class QuranLookupPlugin extends Plugin {
+	settings: QuranLookupPluginSettings;
 	surahJson: surahMeta[];
 	surahList: string[];
 	fuse:any;
@@ -54,27 +55,6 @@ export default class MyPlugin extends Plugin {
 		this.surahList = this.surahJson.map(m => m.title);
 		const options = { keys: ["title"] };
 		this.fuse = new Fuse(this.surahJson, options);
-
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Quran Lookup', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Quran Lookup Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
 
 		// This adds an editor command that can perform some operation on the current editor instance
 		this.addCommand({
@@ -110,28 +90,9 @@ export default class MyPlugin extends Plugin {
 				editor.replaceSelection(totalT);
 			}
 		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new QuranLookupSettingTab(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -154,6 +115,21 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+
+	handleParens(txtVal:string, removeParens:boolean) {
+		return (removeParens ? 
+			txtVal
+				.replace(/ *\([^)]*\)*/g, "") // remove ()
+				.replace(/ *\[[^)]*\] */g, " ") // remove []
+				.replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
+			: txtVal)
+	}
+
+	resolveAPIurl(surah:string, edition:string, startAyah:number, ayahRange = 1): string {
+		return "https://api.alquran.cloud/v1/surah/"+surah+"/" + edition + "?offset="+startAyah+"&limit="+ayahRange;
+	}
+
+	// TODO: Refactor out redundant code
 	// Get a range of Ayaat
 	async getAyahRange(verse: string): Promise<string> {
 		// parsing surah number, ayah range, start/end ayah
@@ -164,46 +140,36 @@ export default class MyPlugin extends Plugin {
 		const ayahRange = endAyah - startAyah;
 
 		const translator = EnTranslations[this.settings.translatorIndex];
-
-		const urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/" + translator + "?offset="+startAyah+"&limit="+ayahRange;
-		const urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+startAyah+"&limit="+ayahRange;
+		const urlEnglis = this.resolveAPIurl(surah, translator, startAyah, ayahRange);
+		const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", startAyah, ayahRange);
 
 		let surahNumber:string[], surahAndAyah:string;
 		let arKeys:ArKeys[], enKeys:EnKeys[];
 		const removeParens = this.settings.removeParens;
 
 		const totalText = await fetch(urlArabic)
-			.then(function(response) {
+			.then( response => {
 				return response.json();
 			})
-			.then(function(data) {
+			.then( data => {
 				const arText = data.data.ayahs;
 				arKeys = arText.map((val: any): ArKeys => ({ verseNum: parseInt(val.numberInSurah), arText: val.text }));
 				console.log(arKeys);
 			})
 			.then(()=>fetch(urlEnglis)
-				.then(function(response) {
+				.then( response => {
 					return response.json();
 				})
-				.then(function(data) {
+				.then( data => {
 					console.log(data);
 					const enText = data.data.ayahs;
 					
-					enKeys = enText.map((val: any): EnKeys => ({ verseNum: parseInt(val.numberInSurah), 
-						enText: (removeParens ? 
-							val.text
-								.replace(/ *\([^)]*\)*/g, "") // remove ()
-								.replace(/ *\[[^)]*\] */g, " ") // remove []
-								.replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
-							: val.text) }));
+					enKeys = enText.map((val: any): EnKeys => ({ 
+						verseNum: parseInt(val.numberInSurah), 
+						enText: this.handleParens(val.text, removeParens)}));
 
-					//enKeys = enText.map((val: any): EnKeys => ({ verseNum: parseInt(val.numberInSurah), enText: (removeParens ? val.text.replace(/[\(\[].*?[\)\]] */g, " ").replace(/\s+([.,!":])/g, "$1") : val.text) }));
-					//enText = data.data.ayahs.map((a: { text: any; }) => a.text.replace(/ *\([^)]*\) */g, " "));
-					//enText = data.data.ayahs[0].text.replace(/ *\([^)]*\) */g, " ");
 					surah = data.data.englishName;
-			
 					surahNumber = data.data.number;
-					//ayahNumber = data.data.ayahs[0].numberInSurah;
 					surahAndAyah = "> [!TIP]+ " + surah + " (" + surahNumber + ":"+ ayahRangeText + ")" 
 					
 					console.log(enText);
@@ -219,11 +185,11 @@ export default class MyPlugin extends Plugin {
 					for (const g of groupings) {
 						strAdder += "> " + g.arText + '\n' + "> " + (g.enText as string) + "\n>\n";
 					}
+					// remove last excessive '>\n'
 					return strAdder.slice(0, -2);
 				}
 			)
 		);
-
 		return totalText;
 	}
 	// Get a single Ayah
@@ -232,42 +198,33 @@ export default class MyPlugin extends Plugin {
 		const ayah = parseInt(verse.split(":")[1])-1;
 		const translator = EnTranslations[this.settings.translatorIndex];
 
-		const urlEnglis = "https://api.alquran.cloud/v1/surah/"+surah+"/" + translator + "?offset="+ayah+"&limit=1";
-		const urlArabic = "https://api.alquran.cloud/v1/surah/"+surah+"/ar.quran-simple?offset="+ayah+"&limit=1";
+		const urlEnglis = this.resolveAPIurl(surah, translator, ayah);
+		const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", ayah);
 		
 		let arText:string, enText:string, surahNumber:string, ayahNumber:string, surahAndAyah:string;
 		const removeParens = this.settings.removeParens;
 
 		const totalText = await fetch(urlArabic)
-			.then(function(response) {
+			.then( response => {
 				return response.json();
 			})
-			.then(function(data) {
+			.then( data => {
 				arText = "> " + data.data.ayahs[0].text;
 				console.log(arText);
 			})
-			.then(()=>fetch(urlEnglis)
-				.then(function(response) {
+			.then( () => fetch(urlEnglis)
+				.then( response => {
 					return response.json();
 				})
-				.then(function(data) { // 
-					console.log(data);
-					enText = "> " + (removeParens ? 
-						data.data.ayahs[0].text
-							.replace(/ *\([^)]*\)*/g, "") // remove ()
-							.replace(/ *\[[^)]*\] */g, " ") // remove []
-							.replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
-						: data.data.ayahs[0].text);
+				.then( data => { 
+					enText = "> " + this.handleParens(data.data.ayahs[0].text, removeParens);
 					
-					//enText = "> " + (removeParens ? data.data.ayahs[0].text.replace(/[\(\[].*?[\)\]] */g, " ").replace(/\s+([.,!":])/g, "$1") : data.data.ayahs[0].text);
 					surah = data.data.englishName;
-			
 					surahNumber = data.data.number;
 					ayahNumber = data.data.ayahs[0].numberInSurah;
 					surahAndAyah = "> [!TIP]+ " + surah + " (" + surahNumber + ":"+ ayahNumber + ")" 
 					
 					console.log(enText);
-					console.log(enText.replace(/ *\([^)]*\) */g, " "));
 					console.log(surah);
 					console.log(ayahNumber);
 					console.log( "success" );
@@ -279,36 +236,17 @@ export default class MyPlugin extends Plugin {
 		return totalText;
 	}
 }
+class QuranLookupSettingTab extends PluginSettingTab {
+	plugin: QuranLookupPlugin;
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: QuranLookupPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
 		const {containerEl} = this;
-
 		containerEl.empty();
-
 		containerEl.createEl('h2', {text: 'Quran Lookup Settings'});
 
 		new Setting(containerEl)
@@ -325,14 +263,6 @@ class SampleSettingTab extends PluginSettingTab {
 				});
 			});
 
-			/* .addText(text => text
-				.setPlaceholder('Choose English Translation')
-				.setValue("" + this.plugin.settings.translatorIndex)
-				.onChange(async (value) => {
-					console.log('Index: ' + value);
-					this.plugin.settings.translatorIndex = parseInt(value);
-					await this.plugin.saveSettings();
-				})); */
 		new Setting(containerEl)
 			.setName('Remove Parenthesis Content')
 			.setDesc('If true, removes the added translator content that would normally appear in parenthesis')

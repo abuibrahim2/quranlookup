@@ -82,15 +82,18 @@ For the fuzzy name search, it uses a simple index file surahSlim.json and fuse.j
 ## Future Feature Ideas
 - [ ] Add error handling for 'surah not found' or 'ayah index out of range'
 - [ ] Show the translator name in the settings
-- [ ] Toggle Display Arabic Only, English Only
+- [ ] Toggle Display of verses callout sections: e.g. show Arabic Only, Translation Only
 - [ ] Right-To-Left alignment for Arabic text
-- [ ] Allow for customization of the Call-out style in the settings (e.g. abstract, info, note, success, question, warning, failure, danger, bug, example, quote, none)
-- [ ] Give option to show dialog with preview and style options each time (like Admonitions 'Insert Admonition' dialog)
+- [ ] Support display of alternate arabic fonts
+- [ ] Add support for translations in other languages 
+- [ ] Allow for customization of the Call-out style in the settings (e.g. abstract, info, note, success, question, warning, failure, danger, bug, example, quote, custom, none)
+- [ ] Give option to show dialog with preview and style options each time (like the Admonition plugins 'Insert Admonition' dialog)
 - [ ] Add option to toggle to use 'Admonition' style syntax instead of obsidian call-out style
-- [ ] Provide links to ayah in website like quran.com
-- [ ] "Offline Mode" which retrieves from a locally saved vault rather than calling API
-- [ ] Add audio play button to playback the verse
-- Others... feel free to suggest!
+- [ ] Provide external links to ayah in websites like quran.com
+- [ ] Add "Offline Mode" option which downlaods and retrieves verses and translations from the locally saved vault rather than calling API
+- [ ] Add command to search for an ayah using search API (displaying results in a dialog)
+- [ ] Add audio playback capabilities to playback the verse
+- Other ideas?... feel free [to suggest](https://github.com/milkperson/quranlookup/issues)!
 ## Manually installing the plugin
 
 - Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/quranlookup/`.
