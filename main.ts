@@ -120,7 +120,7 @@ export default class QuranLookupPlugin extends Plugin {
 		return (removeParens ? 
 			txtVal
 				.replace(/ *\([^)]*\)*/g, "") // remove ()
-				.replace(/ *\[[^)]*\] */g, " ") // remove []
+				.replace(/ \[(.+?)\]/g, " ") // remove []
 				.replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
 			: txtVal)
 	}
@@ -129,110 +129,89 @@ export default class QuranLookupPlugin extends Plugin {
 		return "https://api.alquran.cloud/v1/surah/"+surah+"/" + edition + "?offset="+startAyah+"&limit="+ayahRange;
 	}
 
-	// TODO: Refactor out redundant code
+	async fetchArabicAndTranslation(urlArabic:string, urlEnglish:string) {
+		const [arabicResponse, englishResponse] = await Promise.all([
+			fetch(urlArabic),
+			fetch(urlEnglish)
+		]);
+		const arabic = await arabicResponse.json();
+		const english = await englishResponse.json();
+		return [arabic, english];
+	}
+
+	// TODO: Factor out redundant code in the next 2 functions
 	// Get a range of Ayaat
 	async getAyahRange(verse: string): Promise<string> {
 		// parsing surah number, ayah range, start/end ayah
-		let surah = verse.split(":")[0];
+		const surah = verse.split(":")[0];
 		const ayahRangeText = verse.split(":")[1];
 		const startAyah = parseInt(ayahRangeText.split("-")[0])-1;
 		const endAyah = parseInt(ayahRangeText.split("-")[1]);
 		const ayahRange = endAyah - startAyah;
 
+		// prepare fetch URLs
 		const translator = EnTranslations[this.settings.translatorIndex];
 		const urlEnglis = this.resolveAPIurl(surah, translator, startAyah, ayahRange);
 		const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", startAyah, ayahRange);
 
-		let surahNumber:string[], surahAndAyah:string;
-		let arKeys:ArKeys[], enKeys:EnKeys[];
-		const removeParens = this.settings.removeParens;
+		// Fetch the content from the API
+		const totalText = this.fetchArabicAndTranslation(urlArabic, urlEnglis).then(([arabic, englis]) => {
+			// Extract values from the API responses
+			const arKeys = arabic.data.ayahs.map((val: any): ArKeys => ({ verseNum: +val.numberInSurah, arText: val.text }));
+			const enKeys = englis.data.ayahs.map((val: any): EnKeys => ({ verseNum: +val.numberInSurah, enText: this.handleParens(val.text, this.settings.removeParens)}));
+			const surahName = englis.data.englishName;
+			const surahNumber = englis.data.number;
 
-		const totalText = await fetch(urlArabic)
-			.then( response => {
-				return response.json();
-			})
-			.then( data => {
-				const arText = data.data.ayahs;
-				arKeys = arText.map((val: any): ArKeys => ({ verseNum: parseInt(val.numberInSurah), arText: val.text }));
-				console.log(arKeys);
-			})
-			.then(()=>fetch(urlEnglis)
-				.then( response => {
-					return response.json();
-				})
-				.then( data => {
-					console.log(data);
-					const enText = data.data.ayahs;
-					
-					enKeys = enText.map((val: any): EnKeys => ({ 
-						verseNum: parseInt(val.numberInSurah), 
-						enText: this.handleParens(val.text, removeParens)}));
+			// Combine arabic & translations into an array of single object {verse_number, arabic, english}
+			const groupings = arKeys.map(itm => ({
+				...enKeys.find((item) => (item.verseNum === itm.verseNum) && item),
+				...itm
+			}));
 
-					surah = data.data.englishName;
-					surahNumber = data.data.number;
-					surahAndAyah = "> [!TIP]+ " + surah + " (" + surahNumber + ":"+ ayahRangeText + ")" 
-					
-					console.log(enText);
-					console.log(surahAndAyah);
-					console.log( "success" );
+			// Format for Obsidian call-out markup display '>'
+			const surahAndAyah = "> [!TIP]+ " + surahName + " (" + surahNumber + ":"+ ayahRangeText + ")" 
+			let strAdder = surahAndAyah + '\n'
+			
+			// iterate verse by verse arabic then english
+			for (const g of groupings) {
+				strAdder += "> " + g.arText + '\n' + "> " + (g.enText as string) + "\n>\n";
+			}
+			return strAdder.slice(0, -2); // remove extra '>\n' at the end
+		}).catch(error => {
+			// TODO: Display a notification of error
+			return "";
+		});
 
-					let strAdder = surahAndAyah + '\n'
-
-					const groupings = arKeys.map(itm => ({
-						...enKeys.find((item) => (item.verseNum === itm.verseNum) && item),
-						...itm
-					}));
-					for (const g of groupings) {
-						strAdder += "> " + g.arText + '\n' + "> " + (g.enText as string) + "\n>\n";
-					}
-					// remove last excessive '>\n'
-					return strAdder.slice(0, -2);
-				}
-			)
-		);
 		return totalText;
 	}
 	// Get a single Ayah
 	async getAyah(verse: string): Promise<string> {
-		let surah = verse.split(":")[0];
+		// parsing out surah and ayah
+		const surah = verse.split(":")[0];
 		const ayah = parseInt(verse.split(":")[1])-1;
-		const translator = EnTranslations[this.settings.translatorIndex];
 
+		// prepare fetch URLs
+		const translator = EnTranslations[this.settings.translatorIndex];
 		const urlEnglis = this.resolveAPIurl(surah, translator, ayah);
 		const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", ayah);
+
+		// Fetch the content from the API
+		const totalText = this.fetchArabicAndTranslation(urlArabic, urlEnglis).then(([arabic, englis]) => {
+			// Extract values from the API responses
+			const arText = arabic.data.ayahs[0].text;
+			const enText = this.handleParens(englis.data.ayahs[0].text, this.settings.removeParens);
+			const surahName = englis.data.englishName;
+			const surahNumber = englis.data.number;
+			const ayahNumber = englis.data.ayahs[0].numberInSurah;
+
+			// Format and return for Obsidian call-out markeup display '>'
+			const surahAndAyah = "> [!TIP]+ " + surahName + " (" + surahNumber + ":"+ ayahNumber + ")"; 
+			return surahAndAyah + '\n' + '>' + arText + '\n' + '>' + enText;
+		}).catch(error => {
+			// TODO: Display a notification of error
+			return "";
+		});
 		
-		let arText:string, enText:string, surahNumber:string, ayahNumber:string, surahAndAyah:string;
-		const removeParens = this.settings.removeParens;
-
-		const totalText = await fetch(urlArabic)
-			.then( response => {
-				return response.json();
-			})
-			.then( data => {
-				arText = "> " + data.data.ayahs[0].text;
-				console.log(arText);
-			})
-			.then( () => fetch(urlEnglis)
-				.then( response => {
-					return response.json();
-				})
-				.then( data => { 
-					enText = "> " + this.handleParens(data.data.ayahs[0].text, removeParens);
-					
-					surah = data.data.englishName;
-					surahNumber = data.data.number;
-					ayahNumber = data.data.ayahs[0].numberInSurah;
-					surahAndAyah = "> [!TIP]+ " + surah + " (" + surahNumber + ":"+ ayahNumber + ")" 
-					
-					console.log(enText);
-					console.log(surah);
-					console.log(ayahNumber);
-					console.log( "success" );
-
-					return surahAndAyah + '\n' + arText + '\n' + enText;
-				}
-			)
-		);
 		return totalText;
 	}
 }
