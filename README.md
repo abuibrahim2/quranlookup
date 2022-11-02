@@ -60,10 +60,13 @@ This plugin has some small customizations: in `Community Plugins > Installed Plu
   | en.itani | Clear Qur'an by Talal Itani |
 
 ### Remove Parenthesis Contents
-- Many translations add additional commentary and explanation in parenthesis and brackets to make the english more readable or flow or to better explain a complex word. If enabled, this feature removes that additional text so that the translation succinct.
+#### ${🛑\ {\color{red}Experimental}}\ 🛑\$
+- Some translations provide additional commentary and explanation in parenthesis ( ) and brackets \[ \] to give context and allow the translator the opportunity to explain a nuanced, complex term. While this is useful at times, it makes the text very verbose and breaks the flow for the reader. With the toggle enabled, this plugin removes that additional text so that the translation is succinct like the arabic. 
+- See example below:
 
 ![obsidian quran remove paren](/docs/quran-lookup-remove-paren.png?raw=true)
 
+- NOTE: This is experimental and while I have tried to test it, it may not work 100% all the time so extra eyes QA'ing it are appreciated!
 ## The Quran API and Source(s)
 The Quran verses are currently powered by
 - [alquran.cloud](https://alquran.cloud/api) : An opensource Quran API made by the [Islamic Network](https://islamic.network/) ([github](https://github.com/islamic-network)) and respective [contributors](https://alquran.cloud/contributors).
