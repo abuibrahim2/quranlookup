@@ -1,5 +1,7 @@
 ## بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيْ
 # Obsidian Quran Lookup Plugin
+[![CodeQL](https://github.com/abuibrahim2/quranlookup/actions/workflows/codeql.yml/badge.svg)](https://github.com/abuibrahim2/quranlookup/actions/workflows/codeql.yml)
+
 
 This is a simple utility/text replacement plugin for Obsidian that fills in the quran ayaat (verses) based on a surah:verse(s) shorthand. This uses the 'current editor selection command' capability to replace the selected text with the lookup result.
 
