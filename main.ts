@@ -1,6 +1,5 @@
 import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import Fuse from 'fuse.js'
-import { start } from 'repl';
 // Remember to rename these classes and interfaces!
 
 const EnTranslations: Record<number, string> = {
@@ -211,7 +210,7 @@ export default class QuranLookupPlugin extends Plugin {
 			// TODO: Display a notification of error
 			return "";
 		});
-		
+
 		return totalText;
 	}
 }
