@@ -18,11 +18,13 @@ const EnTranslations: Record<number, string> = {
 	12: "en.shakir",
 	13: "en.transliteration",
 	14: "en.itani",
+	15: "custom"
 };
 
 interface QuranLookupPluginSettings {
 	translatorIndex: number;
 	removeParens: boolean;
+	customTranslationIdentifier: string;
 }
 
 interface surahMeta {
@@ -37,7 +39,8 @@ interface EnKeys { verseNum: number, enText: string }
 
 const DEFAULT_SETTINGS: QuranLookupPluginSettings = {
 	translatorIndex: 5,
-	removeParens: true
+	removeParens: true,
+	customTranslationIdentifier: "dv.divehi"
 }
 
 export default class QuranLookupPlugin extends Plugin {
@@ -129,6 +132,19 @@ export default class QuranLookupPlugin extends Plugin {
 		return [arabic, english];
 	}
 
+	getTranslator() {
+		/**
+		 * Helper function to get the translator name
+		 **/
+		let translator;
+		if (this.settings.translatorIndex == 15) { // 15 is the index for custom translation
+			translator = this.settings.customTranslationIdentifier;
+		} else {
+			translator = EnTranslations[this.settings.translatorIndex];
+		}
+		return translator;
+	}
+
 	// TODO: Factor out redundant code in the next 2 functions
 	// Get a range of Ayaat
 	async getAyahRange(verse: string): Promise<string> {
@@ -140,7 +156,7 @@ export default class QuranLookupPlugin extends Plugin {
 		const ayahRange = endAyah - startAyah;
 
 		// prepare fetch URLs
-		const translator = EnTranslations[this.settings.translatorIndex];
+		const translator = this.getTranslator();
 		const urlEnglis = this.resolveAPIurl(surah, translator, startAyah, ayahRange);
 		const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", startAyah, ayahRange);
 
@@ -153,8 +169,8 @@ export default class QuranLookupPlugin extends Plugin {
 			const surahNumber = englis.data.number;
 
 			// Combine arabic & translations into an array of single object {verse_number, arabic, english}
-			const groupings = arKeys.map(itm => ({
-				...enKeys.find((item) => (item.verseNum === itm.verseNum) && item),
+			const groupings = arKeys.map((itm: ArKeys) => ({
+				...enKeys.find((item: EnKeys) => (item.verseNum === itm.verseNum) && item),
 				...itm
 			}));
 
@@ -181,7 +197,7 @@ export default class QuranLookupPlugin extends Plugin {
 		const ayah = parseInt(verse.split(":")[1])-1;
 
 		// prepare fetch URLs
-		const translator = EnTranslations[this.settings.translatorIndex];
+		const translator = this.getTranslator();
 		const urlEnglis = this.resolveAPIurl(surah, translator, ayah);
 		const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", ayah);
 
@@ -231,6 +247,23 @@ class QuranLookupSettingTab extends PluginSettingTab {
 					this.display();
 				});
 			});
+
+		// if custom translation is selected, add a text box to enter the url
+		if (this.plugin.settings.translatorIndex == 15) {
+			new Setting(containerEl)
+				.setName('Custom Translation')
+				.setDesc('Enter the Edition eg: dv.divehi ')
+				.addText((text) => {
+						text
+							.setPlaceholder('dv.divehi')
+							.setValue(this.plugin.settings.customTranslationIdentifier)
+							.onChange(async (value) => {
+								this.plugin.settings.customTranslationIdentifier = value;
+								await this.plugin.saveSettings();
+							});
+					}
+				);
+		}
 
 		new Setting(containerEl)
 			.setName('Remove Parenthesis Content')
