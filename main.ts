@@ -125,14 +125,8 @@ interface surahMeta {
   count: string;
 }
 
-interface ArKeys {
-  verseNum: number;
-  arText: string;
-}
-interface EnKeys {
-  verseNum: number;
-  enText: string;
-}
+interface ArKeys { verseNum: number; arText: string; }
+interface EnKeys { verseNum: number; enText: string; }
 
 const DEFAULT_SETTINGS: QuranLookupPluginSettings = {
   translatorLanguage: "en",
