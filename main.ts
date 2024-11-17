@@ -1,248 +1,890 @@
-import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import Fuse from 'fuse.js'
+import {
+  App,
+  Editor,
+  MarkdownView,
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  MarkdownRenderer,
+  MarkdownPreviewRenderer
+} from "obsidian";
+import Fuse from "fuse.js";
 // Remember to rename these classes and interfaces!
 
-const EnTranslations: Record<number, string> = {
-	0: "en.ahmedali",
-	1: "en.ahmedraza",
-	2: "en.arberry",
-	3: "en.asad",
-	4: "en.daryabadi",
-	5: "en.hilali",
-	6: "en.pickthall",
-	7: "en.qaribullah",
-	8: "en.sahih",
-	9: "en.sarwar",
-	10: "en.yusufali",
-	11: "en.maududi",
-	12: "en.shakir",
-	13: "en.transliteration",
-	14: "en.itani",
+const Translations: Record<string, { identifier: string; name: string }[]> = {
+  en: [
+    { identifier: "en.ahmedali", name: "Ahmed Ali" },
+    { identifier: "en.ahmedraza", name: "Ahmed Raza Khan" },
+    { identifier: "en.arberry", name: "Arberry" },
+    { identifier: "en.asad", name: "Asad" },
+    { identifier: "en.daryabadi", name: "Daryabadi" },
+    { identifier: "en.hilali", name: "Hilali & Khan" },
+    { identifier: "en.pickthall", name: "Pickthall" },
+    { identifier: "en.qaribullah", name: "Qaribullah & Darwish" },
+    { identifier: "en.sahih", name: "Saheeh International" },
+    { identifier: "en.sarwar", name: "Sarwar" },
+    { identifier: "en.yusufali", name: "Yusuf Ali" },
+    { identifier: "en.maududi", name: "Maududi" },
+    { identifier: "en.shakir", name: "Shakir" },
+    { identifier: "en.transliteration", name: "Transliteration" },
+    { identifier: "en.walk", name: "Ibrahim Walk" },
+    { identifier: "en.itani", name: "Clear Qur'an - Talal Itani" },
+    { identifier: "en.mubarakpuri", name: "Mubarakpuri" },
+    { identifier: "en.qarai", name: "Qarai" },
+    { identifier: "en.wahiduddin", name: "Wahiduddin Khan" },
+  ],
+  fr: [{ identifier: "fr.hamidullah", name: "Hamidullah" }],
+  de: [
+    { identifier: "de.aburida", name: "Abu Rida" },
+    { identifier: "de.bubenheim", name: "Bubenheim & Elyas" },
+  ],
+  az: [
+    { identifier: "az.mammadaliyev", name: "Məmmədəliyev & Bünyadov" },
+    { identifier: "az.musayev", name: "Musayev" },
+  ],
+  bn: [{ identifier: "bn.bengali", name: "Muhiuddin Khan" }],
+  cs: [
+    { identifier: "cs.hrbek", name: "Hrbek" },
+    { identifier: "cs.nykl", name: "Nykl" },
+  ],
+  dv: [
+    { identifier: "dv.divehi", name: "Office of the President of Maldives" },
+  ],
+  fa: [
+    { identifier: "fa.ayati", name: "Ayati" },
+    { identifier: "fa.fooladvand", name: "Fooladvand" },
+    { identifier: "fa.ghomshei", name: "Elahi Ghomshei" },
+  ],
+  ha: [{ identifier: "ha.gumi", name: "Gumi" }],
+  hi: [
+    {
+      identifier: "hi.hindi",
+      name: "Suhel Farooq Khan and Saifur Rahman Nadwi",
+    },
+  ],
+  id: [{ identifier: "id.indonesian", name: "Bahasa Indonesia" }],
+  it: [{ identifier: "it.piccardo", name: "Piccardo" }],
+  ja: [{ identifier: "ja.japanese", name: "Japanese" }],
+  ko: [{ identifier: "ko.korean", name: "Korean" }],
+  ku: [{ identifier: "ku.asan", name: "Burhan Muhammad-Amin" }],
+  ml: [
+    {
+      identifier: "ml.abdulhameed",
+      name: "Cheriyamundam Abdul Hameed and Kunhi Mohammed Parappoor",
+    },
+  ],
+  nl: [{ identifier: "nl.keyzer", name: "Keyzer" }],
+  no: [{ identifier: "no.berg", name: "Einar Berg" }],
+  pl: [{ identifier: "pl.bielawskiego", name: "Bielawskiego" }],
+  pt: [{ identifier: "pt.elhayek", name: "El-Hayek" }],
+  ro: [{ identifier: "ro.grigore", name: "Grigore" }],
+  ru: [
+    { identifier: "ru.kuliev", name: "Kuliev" },
+    { identifier: "ru.osmanov", name: "Osmanov" },
+    { identifier: "ru.porokhova", name: "Porokhova" },
+  ],
+  sd: [{ identifier: "sd.amroti", name: "Amroti" }],
+  so: [{ identifier: "so.abduh", name: "Abduh" }],
+  sq: [
+    { identifier: "sq.ahmeti", name: "Sherif Ahmeti" },
+    { identifier: "sq.mehdiu", name: "Feti Mehdiu" },
+    { identifier: "sq.nahi", name: "Efendi Nahi" },
+  ],
+  sv: [{ identifier: "sv.bernstrom", name: "Bernström" }],
+  sw: [{ identifier: "sw.barwani", name: "Al-Barwani" }],
+  ta: [{ identifier: "ta.tamil", name: "Jan Turst Foundation" }],
+  th: [{ identifier: "th.thai", name: "King Fahad Quran Complex" }],
+  tr: [
+    { identifier: "tr.ates", name: "Suleyman Ates" },
+    { identifier: "tr.bulac", name: "Ali Bulaç" },
+    { identifier: "tr.diyanet", name: "Diyanet İşleri" },
+  ],
+  tt: [{ identifier: "tt.nugman", name: "Yakub Ibn Nugman" }],
+  ug: [{ identifier: "ug.saleh", name: "Muhammad Saleh" }],
+  ur: [
+    { identifier: "ur.ahmedali", name: "Ahmed Ali" },
+    { identifier: "ur.jalandhry", name: "Fateh Muhammad Jalandhry" },
+    { identifier: "ur.jawadi", name: "Syed Zeeshan Haider Jawadi" },
+  ],
+  uz: [{ identifier: "uz.sodik", name: "Muhammad Sodik Muhammad Yusuf" }],
+};
+
+const DisplayOptions: Record<number, string> = {
+  0: "Text Only",
+  1: "Markdown Table",
+  2: "TIP Callout (original)",
 };
 
 interface QuranLookupPluginSettings {
-	translatorIndex: number;
-	removeParens: boolean;
+  showArabic: boolean;
+  translations: {
+    language: string;
+    translatorIndex: number;
+    removeParens: boolean;
+  }[];
+  displayOrder: string[];
+  includeTranslation: boolean;
+  displayTypeIndex: number;
+  displayCallOut: boolean;
+  calloutType: string;
+  wrapQuranInCode: boolean;
 }
 
 interface surahMeta {
-	index: string;
-	title: string;
-	titleAr: string;
-	count: string;
+  index: string;
+  title: string;
+  titleAr: string;
+  count: string;
 }
 
-interface ArKeys { verseNum: number, arText: string }
-interface EnKeys { verseNum: number, enText: string }
+interface ArKeys {
+  verseNum: number;
+  arText: string;
+}
+interface EnKeys {
+  verseNum: number;
+  enText: string;
+}
 
 const DEFAULT_SETTINGS: QuranLookupPluginSettings = {
-	translatorIndex: 5,
-	removeParens: true
-}
+  showArabic: true,
+  translations: [
+    {
+      language: "en",
+      translatorIndex: 0,
+      removeParens: true,
+    },
+  ],
+  displayOrder: ["arabic", "translation1"],
+  includeTranslation: true,
+  displayTypeIndex: 2,
+  displayCallOut: true,
+  calloutType: "tip",
+  wrapQuranInCode: true,
+};
 
 export default class QuranLookupPlugin extends Plugin {
-	settings: QuranLookupPluginSettings;
-	surahJson: surahMeta[];
-	surahList: string[];
-	fuse:any;
+  settings: QuranLookupPluginSettings;
+  surahJson: surahMeta[];
+  surahList: string[];
+  fuse: any;
 
-	async onload() {
-		await this.loadSettings();
+  async onload() {
+    await this.loadSettings();
 
-		// Setup the sura name list for fuzzy recall
-		this.surahJson = require('./surahSlim.json');
-		this.surahList = this.surahJson.map(m => m.title);
-		const options = { keys: ["title"] };
-		this.fuse = new Fuse(this.surahJson, options);
+    // Setup the sura name list for fuzzy recall
+    this.surahJson = require("./surahSlim.json");
+    this.surahList = this.surahJson.map((m) => m.title);
+    const options = { keys: ["title"] };
+    this.fuse = new Fuse(this.surahJson, options);
 
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'ayah-list-command',
-			name: 'Retrieve Ayaat',
-			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				// tokenize verse shorthand
-				const ayaat = editor.getSelection().split(" ").filter(Boolean);
-				let totalT = "";
-				let verseText = "";
+    // This adds an editor command that can perform some operation on the current editor instance
+    this.addCommand({
+      id: "ayah-list-command",
+      name: "Retrieve Ayaat",
+      editorCallback: async (editor: Editor, view: MarkdownView) => {
+        // tokenize verse shorthand
+        const ayaat = editor.getSelection().split(" ").filter(Boolean);
+        let totalT = "";
+        let verseText = "";
 
-				for (const verse of ayaat) {
-					let rVerse = verse;
-					
-					// Deal with written surah names
-					const surah = verse.split(":")[0];
-					if (isNaN(parseInt(surah))) {
-						let surahIndex = 0;
-						const surahNum = this.fuse.search(surah)[0].item;
-						if (surahNum != undefined) {
-							surahIndex = parseInt((surahNum as surahMeta).index);
-						}
-						rVerse = "" + surahIndex + ":" + verse.split(":")[1];
-					}
-					// Determine if Range vs Single Ayah
-					if (rVerse.contains("-")) {
-						verseText = await this.getAyahRange(rVerse);
-					} else {
-						verseText = await this.getAyah(rVerse) + '\n';
-					}
-					totalT += verseText + '\n';
-				}
-				editor.replaceSelection(totalT);
-			}
-		});
+        for (const verse of ayaat) {
+          let rVerse = verse;
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new QuranLookupSettingTab(this.app, this));
+          // Deal with written surah names
+          const surah = verse.split(":")[0];
+          if (isNaN(parseInt(surah))) {
+            let surahIndex = 0;
+            const surahNum = this.fuse.search(surah)[0].item;
+            if (surahNum != undefined) {
+              surahIndex = parseInt((surahNum as surahMeta).index);
+            }
+            rVerse = "" + surahIndex + ":" + verse.split(":")[1];
+          }
+          // Determine if Range vs Single Ayah
+          if (rVerse.includes("-")) {
+            verseText = await this.getAyahRange(rVerse);
+          } else {
+            verseText = (await this.getAyah(rVerse)) + "\n";
+          }
+          totalT += verseText + "\n";
+        }
+        editor.replaceSelection(totalT);
+      },
+    });
+
+    // This adds a settings tab so the user can configure various aspects of the plugin
+    this.addSettingTab(new QuranLookupSettingTab(this.app, this));
+  }
+
+  onunload() {}
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+
+  handleParens(txtVal: string, removeParens: boolean) {
+    return removeParens
+      ? txtVal
+          .replace(/ *\([^)]*\)*/g, "") // remove ()
+          .replace(/ \[(.+?)\]/g, " ") // remove []
+          .replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
+      : txtVal;
+  }
+
+  resolveAPIurl(
+    surah: string,
+    edition: string,
+    startAyah: number,
+    ayahRange = 1
+  ): string {
+    return (
+      "https://api.alquran.cloud/v1/surah/" +
+      surah +
+      "/" +
+      edition +
+      "?offset=" +
+      startAyah +
+      "&limit=" +
+      ayahRange
+    );
+  }
+
+  async fetchArabicOnly(urlArabic: string) {
+    const arabicResponse = await fetch(urlArabic);
+    const arabic = await arabicResponse.json();
+    return arabic;
+  }
+
+  async fetchTranslationOnly(urlEnglish: string){
+    const englishResponse = await fetch(urlEnglish);
+    const english = await englishResponse.json();
+    return english;    
+  }
+
+  async fetchArabicAndTranslation(urlArabic: string, urlEnglish: string) {
+    const [arabicResponse, englishResponse] = await Promise.all([
+      fetch(urlArabic),
+      fetch(urlEnglish),
+    ]);
+    const arabic = await arabicResponse.json();
+    const english = await englishResponse.json();
+    return [arabic, english];
+  }
+
+  async getAyah(verse: string): Promise<string> {
+    const surah = verse.split(":")[0];
+    const ayah = parseInt(verse.split(":")[1]) - 1;
+  
+    let arabic = null;
+    if (this.settings.showArabic) {
+      const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", ayah);
+      arabic = await this.fetchArabicOnly(urlArabic);
+    }
+  
+    const translationsData: { text: string; language: string, name: string}[] = [];
+    for (const translation of this.settings.translations) {
+      const translator = Translations[translation.language][translation.translatorIndex].identifier;
+      const urlEnglish = this.resolveAPIurl(surah, translator, ayah);
+      
+      const english = await this.fetchTranslationOnly(urlEnglish);
+      translationsData.push({
+        text: this.handleParens(english.data.ayahs[0].text, translation.removeParens),
+        language: translation.language,
+        name: english.data.englishName,
+      });
+    }
+  
+    debugger;
+    let result = "";
+    const surahName = this.settings.showArabic && arabic ? arabic.data.name : translationsData[0]?.name;
+    const verseHeader = `${surahName} (${surah}:${ayah + 1})`;
+  
+    const renderOrder: {type: string, text: string}[] = [];
+    this.settings.displayOrder.forEach((item) => {
+      if (item === 'arabic' && this.settings.showArabic && arabic) {
+        renderOrder.push({
+          type: 'arabic',
+          text: this.settings.wrapQuranInCode ? "`" + arabic.data.ayahs[0].text + "`" : arabic.data.ayahs[0].text,
+        });
+      } else if (item.startsWith('translation') && translationsData.length > 0) {
+        const index = parseInt(item.replace('translation', '')) - 1;
+        if (index >= 0 && index < translationsData.length) {
+          renderOrder.push({
+            type: `translation${index + 1}`,
+            text: translationsData[index].text,
+          });
+        }
+      }
+    });
+  
+    if (this.settings.displayTypeIndex === 1) {
+      // Markdown Table Header
+      result += `| `;
+      renderOrder.forEach((_, index) => { result += `| Translation ${index + 1} `; });
+      // result += `| ${verseHeader} `;
+      result += `|\n| ---- `; //| ---- `;
+      renderOrder.forEach(() => { result += `| ---- `; });
+      result += `|\n`;
+  
+      let arAyah = ""; 
+      result += `|  . `;
+      renderOrder.forEach((ayah) => {
+        if (ayah.type != 'arabic') {
+          result += `| ${ayah.text} `; 
+          //result += `|\n`;
+        } else {
+          arAyah = ayah.text;
+        }
+      });
+      
+      if (this.settings.showArabic && (arAyah != "")) {
+        result += `| ${this.settings.wrapQuranInCode ? "`" + arAyah + "`" : arAyah} `;
+        result += `|\n`;
+      }
+    } else if (this.settings.displayTypeIndex === 2) { // TIP Callout Mode
+      const calloutType = this.settings.calloutType || "tip";
+      result += `> [!${calloutType.toUpperCase()}]+ ${verseHeader}\n`;
+      renderOrder.forEach((item) => {
+        result += `> ${item.text}\n>\n`;
+      });
+      result = result.trim();
+  
+    } else {
+      // Text Only Mode
+      result += `${verseHeader}\n`;
+      renderOrder.forEach((item) => {
+        result += `${item.text}\n\n`;
+      });
+      result = result.trim();
+    }
+  
+    return result;
+  }
+
+  // Ayah Range Data Retrieval
+  async retrieveAyahRangeData(surah: string, startAyah: number, ayahRange: number): Promise<{
+        surahName: string;
+        surahNumber: number;
+        ayahs: { ayahNumber: number; arabicText?: string; translations: { text: string; language: string; name: string }[];}[];
+      }> {
+    let arabicAyahs: { verseNum: number; text: string }[] = [];
+    let surahName = "";
+    let surahNumber = 0;
+  
+    if (this.settings.showArabic) {
+      const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", startAyah, ayahRange);
+      const arabic = await this.fetchArabicOnly(urlArabic);
+      surahName = arabic.data.name; // Correctly extracting surah name
+      surahNumber = arabic.data.number; // Correctly extracting surah number
+      arabicAyahs = arabic.data.ayahs.map((ayah: any) => ({
+        verseNum: ayah.numberInSurah,
+        text: ayah.text,
+      }));
+    }
+  
+    const translationsData: { text: string; language: string; name: string }[][] = [];
+    if (this.settings.includeTranslation) {
+      for (const translation of this.settings.translations) {
+        const translator = Translations[translation.language][translation.translatorIndex].identifier;
+        const urlTranslation = this.resolveAPIurl(surah, translator, startAyah, ayahRange);
+        const english = await this.fetchTranslationOnly(urlTranslation);
+        translationsData.push(
+          english.data.ayahs.map((ayah: any) => ({
+            text: this.handleParens(ayah.text, translation.removeParens),
+            language: translation.language,
+            name: english.data.englishName,
+          }))
+        );
+        if (!surahName) {
+          // Extracting surah name and number from the first translation in case Arabic is not used
+          surahName = english.data.englishName;
+          surahNumber = english.data.number;
+        }
+      }
+    }
+  
+    // Create ayahs list combining arabic and translations
+    const ayahs: {
+      ayahNumber: number;
+      arabicText?: string;
+      translations: { text: string; language: string; name: string }[];
+    }[] = [];
+  
+    for (let i = 0; i < ayahRange; i++) {
+      ayahs.push({
+        ayahNumber: startAyah + i + 1,
+        arabicText: arabicAyahs[i]?.text,
+        translations: translationsData.map((transData) => transData[i]),
+      });
+    }
+  
+    return {
+      surahName,
+      surahNumber,
+      ayahs,
+    };
+  }
+  
+  async getAyahRange(verse: string): Promise<string> {
+    const surah = verse.split(":")[0];
+    const ayahRangeText = verse.split(":")[1];
+    const startAyah = parseInt(ayahRangeText.split("-")[0]) - 1;
+    const endAyah = parseInt(ayahRangeText.split("-")[1]);
+    const ayahRange = endAyah - startAyah;
+  
+    const ayahData = await this.retrieveAyahRangeData(surah, startAyah, ayahRange);
+    
+    let result = "";
+    const verseHeader = `${ayahData.surahName} (${ayahData.surahNumber}:${ayahRangeText})`;
+  
+    if (this.settings.displayTypeIndex === 1) {
+      // Markdown Table Header
+      result += `| `;
+      ayahData.ayahs[0].translations.forEach((_, index) => { 
+        result += `| Translation ${index + 1} `;
+      });
+      result += `| ${verseHeader} `;
+      result += `|\n| ---- | ---- `;
+      ayahData.ayahs[0].translations.forEach(() => {
+        result += `| ---- `;
+      });
+      result += `|\n`;
+  
+      ayahData.ayahs.forEach((ayah) => {
+        result += `| ${ayah.ayahNumber}. `;
+        ayah.translations.forEach((translation) => {
+          result += `| ${translation.text} `;
+        });
+        if (this.settings.showArabic && ayah.arabicText) {
+          result += `| ${this.settings.wrapQuranInCode ? "`" + ayah.arabicText + "`" : ayah.arabicText} `;
+        }
+        result += `|\n`;
+      });
+    } else if (this.settings.displayTypeIndex === 2) {
+      // TIP Callout
+      const calloutType = this.settings.calloutType || "tip";
+      result += `> [!${calloutType.toUpperCase()}]+ ${verseHeader}\n`;
+      ayahData.ayahs.forEach((ayah) => {
+        if (this.settings.showArabic && ayah.arabicText) {
+          result += `> ${this.settings.wrapQuranInCode ? "`" + ayah.arabicText + "`" : ayah.arabicText}\n>\n`;
+        }
+        ayah.translations.forEach((translation) => {
+          result += `> ${translation.text}\n>\n`;
+        });
+      });
+      result = result.trim();
+    } else {
+      // Text Only Mode
+      result += `${verseHeader}\n`;
+      ayahData.ayahs.forEach((ayah) => {
+        if (this.settings.showArabic && ayah.arabicText) {
+          result += `${this.settings.wrapQuranInCode ? "`" + ayah.arabicText + "`" : ayah.arabicText}\n\n`;
+        }
+        ayah.translations.forEach((translation) => {
+          result += `${translation.text}\n\n`;
+        });
+      });
+      result = result.trim();
+    }
+  
+    return result;
+  }
+  
+/*
+  async getAyah(verse: string): Promise<string> {
+	const surah = verse.split(":")[0];
+	const ayah = parseInt(verse.split(":")[1]) - 1;
+  
+	const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", ayah);
+	let result = "";
+  
+	if (this.settings.includeTranslation) {
+	  const translator = Translations[this.settings.translations[0].language][this.settings.translations[0].translatorIndex].identifier;
+	  const urlEnglish = this.resolveAPIurl(surah, translator, ayah);
+	  const [arabic, english] = await this.fetchArabicAndTranslation(urlArabic, urlEnglish);
+  
+    const arText = this.settings.wrapQuranInCode ? "`" + arabic.data.ayahs[0].text + "`" : arabic.data.ayahs[0].text;
+	  const enText = this.handleParens(english.data.ayahs[0].text, this.settings.translations[0].removeParens);
+	  const surahName = english.data.englishName;
+	  const surahNumber = english.data.number;
+	  const ayahNumber = english.data.ayahs[0].numberInSurah;
+  
+	  const verseHeader = `${surahName} (${surahNumber}:${ayahNumber})`;
+  
+	  if (this.settings.displayTypeIndex === 1) {
+		// Markdown Table
+		result += `| ${verseHeader} |  |\n| ---- | ---- |\n`;
+		result += "| " + enText + " | " + arText + " |\n";
+	  } else if (this.settings.displayTypeIndex === 2) {
+		// TIP Callout
+    const calloutType = this.settings.calloutType || 'tip';
+		result += "> [!" + calloutType + "]+ " + verseHeader + "\n> " + enText + "\n> " + arText + "\n>";
+	  } else {
+		// Text Only
+		result += `${verseHeader}\n${enText}\n` + arText + "\n";
+	  }
+	} else {
+	  // Arabic Only
+	  const arabic = await this.fetchArabicOnly(urlArabic);
+    const arText = this.settings.wrapQuranInCode ? "`" + arabic.data.ayahs[0].text + "`" : arabic.data.ayahs[0].text;
+	  const surahName = arabic.data.name;
+	  const surahNumber = arabic.data.number;
+	  const ayahNumber = arabic.data.ayahs[0].numberInSurah;
+  
+	  const verseHeader = `${surahName} (${surahNumber}:${ayahNumber})`;
+  
+	  if (this.settings.displayTypeIndex === 1) {
+		// Markdown Table
+		result += `| ${verseHeader} |\n| ---- |\n`;
+		result += "| " + arText + " |\n";
+	  } else if (this.settings.displayTypeIndex === 2) {
+		// TIP Callout
+    const calloutType = this.settings.calloutType || 'tip';
+		result += `> [!${calloutType}]+ ${verseHeader}\n> ` + arText + "\n>";
+	  } else {
+		// Text Only
+		result += `${verseHeader}\n` + arText + "\n";
+	  }
 	}
-
-	onunload() {
-
+  
+	return result;
+  } 
+  
+  async getAyahRange(verse: string): Promise<string> {
+	const surah = verse.split(":")[0];
+	const ayahRangeText = verse.split(":")[1];
+	const startAyah = parseInt(ayahRangeText.split("-")[0]) - 1;
+	const endAyah = parseInt(ayahRangeText.split("-")[1]);
+	const ayahRange = endAyah - startAyah;
+  
+	const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", startAyah, ayahRange);
+	let result = "";
+  
+	if (this.settings.includeTranslation) {
+	  const translator = Translations[this.settings.translations[0].language][this.settings.translations[0].translatorIndex].identifier;
+	  const urlEnglish = this.resolveAPIurl(surah, translator, startAyah, ayahRange);
+	  const [arabic, english] = await this.fetchArabicAndTranslation(urlArabic, urlEnglish);
+  
+	  const surahName = english.data.englishName;
+	  const surahNumber = english.data.number;
+	  const verseHeader = `${surahName} (${surahNumber}:${ayahRangeText})`;
+  
+	  if (this.settings.displayTypeIndex === 1) {
+		// Markdown Table
+		result += `| ${verseHeader} |  |\n| ---- | ---- |\n`;
+		for (let i = 0; i < arabic.data.ayahs.length; i++) {
+		  const arText = arabic.data.ayahs[i].text;
+		  const enText = this.handleParens(english.data.ayahs[i].text, this.settings.translations[0].removeParens);
+		  result += `| ${enText} | ` + arText + " |\n";
+		}
+	  } else if (this.settings.displayTypeIndex === 2) {
+		// TIP Callout
+    const calloutType = this.settings.calloutType || 'tip';
+		result += `> [!${calloutType}]+ ${verseHeader}\n`;
+		for (let i = 0; i < arabic.data.ayahs.length; i++) {
+		  const arText = arabic.data.ayahs[i].text;
+		  const enText = this.handleParens(english.data.ayahs[i].text, this.settings.translations[0].removeParens);
+		  result += `> ${enText}\n> ` + arText + "\n>\n";
+		}
+		result = result.trim();
+	  } else {
+		// Text Only
+		result += `${verseHeader}\n`;
+		for (let i = 0; i < arabic.data.ayahs.length; i++) {
+		  const arText = arabic.data.ayahs[i].text;
+		  const enText = this.handleParens(english.data.ayahs[i].text, this.settings.translations[0].removeParens);
+		  result += `${enText}\n` + arText + "\n\n";
+		}
+		result = result.trim();
+	  }
+	} else {
+	  // Arabic Only
+	  const arabic = await this.fetchArabicOnly(urlArabic);
+  
+	  const surahName = arabic.data.name;
+	  const surahNumber = arabic.data.number;
+	  const verseHeader = `${surahName} (${surahNumber}:${ayahRangeText})`;
+  
+	  if (this.settings.displayTypeIndex === 1) {
+		// Markdown Table
+		result += `| ${verseHeader} |\n| ---- |\n`;
+		for (let i = 0; i < arabic.data.ayahs.length; i++) {
+		  const arText = arabic.data.ayahs[i].text;
+		  result += "| " + arText + " |\n";
+		}
+	  } else if (this.settings.displayTypeIndex === 2) {
+		// TIP Callout
+    const calloutType = this.settings.calloutType || 'tip';
+		result += `> [!${calloutType}]+ ${verseHeader}\n`;
+		for (let i = 0; i < arabic.data.ayahs.length; i++) {
+		  const arText = arabic.data.ayahs[i].text;
+		  result += "> " + arText + "\n>\n";
+		}
+		result = result.trim();
+	  } else {
+		// Text Only
+		result += `${verseHeader}\n`;
+		for (let i = 0; i < arabic.data.ayahs.length; i++) {
+		  const arText = arabic.data.ayahs[i].text;
+		  result += arText + "\n\n";
+		}
+		result = result.trim();
+	  }
 	}
+  
+	return result;
+  }
+  */ 
+}  
 
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-
-	handleParens(txtVal:string, removeParens:boolean) {
-		return (removeParens ? 
-			txtVal
-				.replace(/ *\([^)]*\)*/g, "") // remove ()
-				.replace(/ \[(.+?)\]/g, " ") // remove []
-				.replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
-			: txtVal)
-	}
-
-	resolveAPIurl(surah:string, edition:string, startAyah:number, ayahRange = 1): string {
-		return "https://api.alquran.cloud/v1/surah/"+surah+"/" + edition + "?offset="+startAyah+"&limit="+ayahRange;
-	}
-
-	async fetchArabicAndTranslation(urlArabic:string, urlEnglish:string) {
-		const [arabicResponse, englishResponse] = await Promise.all([
-			fetch(urlArabic),
-			fetch(urlEnglish)
-		]);
-		const arabic = await arabicResponse.json();
-		const english = await englishResponse.json();
-		return [arabic, english];
-	}
-
-	// TODO: Factor out redundant code in the next 2 functions
-	// Get a range of Ayaat
-	async getAyahRange(verse: string): Promise<string> {
-		// parsing surah number, ayah range, start/end ayah
-		const surah = verse.split(":")[0];
-		const ayahRangeText = verse.split(":")[1];
-		const startAyah = parseInt(ayahRangeText.split("-")[0])-1;
-		const endAyah = parseInt(ayahRangeText.split("-")[1]);
-		const ayahRange = endAyah - startAyah;
-
-		// prepare fetch URLs
-		const translator = EnTranslations[this.settings.translatorIndex];
-		const urlEnglis = this.resolveAPIurl(surah, translator, startAyah, ayahRange);
-		const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", startAyah, ayahRange);
-
-		// Fetch the content from the API
-		const totalText = this.fetchArabicAndTranslation(urlArabic, urlEnglis).then(([arabic, englis]) => {
-			// Extract values from the API responses
-			const arKeys = arabic.data.ayahs.map((val: any): ArKeys => ({ verseNum: +val.numberInSurah, arText: val.text }));
-			const enKeys = englis.data.ayahs.map((val: any): EnKeys => ({ verseNum: +val.numberInSurah, enText: this.handleParens(val.text, this.settings.removeParens)}));
-			const surahName = englis.data.englishName;
-			const surahNumber = englis.data.number;
-
-			// Combine arabic & translations into an array of single object {verse_number, arabic, english}
-			const groupings = arKeys.map(itm => ({
-				...enKeys.find((item) => (item.verseNum === itm.verseNum) && item),
-				...itm
-			}));
-
-			// Format for Obsidian call-out markup display '>'
-			const surahAndAyah = "> [!TIP]+ " + surahName + " (" + surahNumber + ":"+ ayahRangeText + ")" 
-			let strAdder = surahAndAyah + '\n'
-			
-			// iterate verse by verse arabic then english
-			for (const g of groupings) {
-				strAdder += "> " + g.arText + '\n' + "> " + (g.enText as string) + "\n>\n";
-			}
-			return strAdder.slice(0, -2); // remove extra '>\n' at the end
-		}).catch(error => {
-			// TODO: Display a notification of error
-			return "";
-		});
-
-		return totalText;
-	}
-	// Get a single Ayah
-	async getAyah(verse: string): Promise<string> {
-		// parsing out surah and ayah
-		const surah = verse.split(":")[0];
-		const ayah = parseInt(verse.split(":")[1])-1;
-
-		// prepare fetch URLs
-		const translator = EnTranslations[this.settings.translatorIndex];
-		const urlEnglis = this.resolveAPIurl(surah, translator, ayah);
-		const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", ayah);
-
-		// Fetch the content from the API
-		const totalText = this.fetchArabicAndTranslation(urlArabic, urlEnglis).then(([arabic, englis]) => {
-			// Extract values from the API responses
-			const arText = arabic.data.ayahs[0].text;
-			const enText = this.handleParens(englis.data.ayahs[0].text, this.settings.removeParens);
-			const surahName = englis.data.englishName;
-			const surahNumber = englis.data.number;
-			const ayahNumber = englis.data.ayahs[0].numberInSurah;
-
-			// Format and return for Obsidian call-out markeup display '>'
-			const surahAndAyah = "> [!TIP]+ " + surahName + " (" + surahNumber + ":"+ ayahNumber + ")"; 
-			return surahAndAyah + '\n' + '>' + arText + '\n' + '>' + enText;
-		}).catch(error => {
-			// TODO: Display a notification of error
-			return "";
-		});
-
-		return totalText;
-	}
-}
 class QuranLookupSettingTab extends PluginSettingTab {
-	plugin: QuranLookupPlugin;
+  plugin: QuranLookupPlugin;
 
-	constructor(app: App, plugin: QuranLookupPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+  constructor(app: App, plugin: QuranLookupPlugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
 
-	display(): void {
-		const {containerEl} = this;
-		containerEl.empty();
-		containerEl.createEl('h2', {text: 'Quran Lookup Settings'});
+  display(): void {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "Quran Lookup Settings" });
 
-		new Setting(containerEl)
-			.setName('Translation Type')
-			.setDesc('Which english translation to use')
-			.addDropdown((dropdown) => { dropdown
-				.addOptions(EnTranslations)
-				.setValue(this.plugin.settings.translatorIndex.toString())
-				.onChange(async (value) => {
-					this.plugin.settings.translatorIndex = +value
-					console.log(this.plugin.settings.translatorIndex);
-					await this.plugin.saveSettings();
-					this.display();
-				});
-			});
+    new Setting(containerEl)
+      .setName('Show Arabic Verse')
+      .setDesc('Toggle to include or exclude the Arabic verse.')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.showArabic)
+          .onChange(async (value) => {
+            this.plugin.settings.showArabic = value;
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+    
+    new Setting(containerEl)
+      .setName("Include Translation")
+      .setDesc("If true, provides translation under the Arabic verse")
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.includeTranslation)
+          .onChange(async (includeTranslation) => {
+            this.plugin.settings.includeTranslation = includeTranslation;
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
 
-		new Setting(containerEl)
-			.setName('Remove Parenthesis Content')
-			.setDesc('If true, removes the added translator content that would normally appear in parenthesis')
-			.addToggle((toggle) => {
-				toggle
-					.setValue(this.plugin.settings.removeParens)
-					.onChange(async (removeParens) => {
-						this.plugin.settings.removeParens = removeParens;
-						await this.plugin.saveSettings();
-						this.display();
-					});
-			});
-	}
+  // Translation Settings (Only if Include Translation is true)
+  if (this.plugin.settings.includeTranslation) {
+    this.plugin.settings.translations.forEach((translation, index) => {
+      new Setting(containerEl)
+        .setName(`Translation ${index + 1} Language`)
+        .setDesc('Select the language of the translation')
+        .addDropdown((dropdown) => {
+          Object.keys(Translations).forEach((lang) => {
+            dropdown.addOption(lang, lang);
+          });
+          dropdown.setValue(translation.language)
+            .onChange(async (value) => {
+              this.plugin.settings.translations[index].language = value;
+              await this.plugin.saveSettings();
+              this.display();
+            });
+        });
+
+      new Setting(containerEl)
+        .setName(`Translation ${index + 1} Type`)
+        .setDesc('Which translation to use')
+        .addDropdown((dropdown) => {
+          Translations[translation.language].forEach((t, idx) => {
+            dropdown.addOption(idx.toString(), t.name);
+          });
+          dropdown.setValue(translation.translatorIndex.toString())
+            .onChange(async (value) => {
+              this.plugin.settings.translations[index].translatorIndex = +value;
+              await this.plugin.saveSettings();
+            });
+        });
+
+      new Setting(containerEl)
+        .setName(`Remove Parenthesis in Translation ${index + 1}`)
+        .setDesc('If true, removes the added translator content that appears in parentheses')
+        .addToggle((toggle) => {
+          toggle
+            .setValue(translation.removeParens)
+            .onChange(async (value) => {
+              this.plugin.settings.translations[index].removeParens = value;
+              await this.plugin.saveSettings();
+            });
+        });
+
+      // Add "Remove Translation" Button for Additional Translations (not the first one)
+      if (index > 0) {
+        new Setting(containerEl)
+          .setName(`Remove Translation ${index + 1}`)
+          .addButton((btn) => {
+            btn.setButtonText('Remove').onClick(async () => {
+              this.plugin.settings.translations.splice(index, 1);
+              await this.plugin.saveSettings();
+              this.display();
+            });
+          });
+      }
+
+      // Add "Add Translation" Button if there's still room (max 3 translations)
+      if (index === this.plugin.settings.translations.length - 1 && index < 2) {
+        new Setting(containerEl)
+          .setName('Add Translation')
+          .addButton((btn) => {
+            btn.setButtonText('Add').onClick(async () => {
+              this.plugin.settings.translations.push({
+                language: "en",
+                translatorIndex: 0,
+                removeParens: true,
+              });
+              await this.plugin.saveSettings();
+              this.display();
+            });
+          });
+      }
+    });
+  }
+
+  // Display Order Setting
+  new Setting(containerEl)
+    .setName('Display Order')
+    .setDesc('Set the display order for Arabic and translations')
+    .addTextArea((textArea) => {
+      textArea
+        .setValue(this.plugin.settings.displayOrder.join(', '))
+        .onChange(async (value) => {
+          this.plugin.settings.displayOrder = value.split(',').map((s) => s.trim());
+          await this.plugin.saveSettings();
+        });
+    });
+
+    new Setting(containerEl)
+      .setName('Wrap Quran Arabic in Code Snippet')
+      .setDesc('If true, wraps the Arabic verse in backticks to use code formatting')
+      .addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.wrapQuranInCode)
+          .onChange(async (value) => {
+            this.plugin.settings.wrapQuranInCode = value;
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+
+	  new Setting(containerEl)
+      .setName('Display Container Type')
+      .setDesc('Which container to use for displaying the verses')
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOptions(DisplayOptions)
+          .setValue(this.plugin.settings.displayTypeIndex.toString())
+          .onChange(async (value) => {
+            this.plugin.settings.displayTypeIndex = +value;
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
+
+    // New Setting for Callout Type (conditionally visible)
+    if (this.plugin.settings.displayTypeIndex === 2) { // Only if TIP Callout is chosen
+      new Setting(containerEl)
+        .setName('Callout Type')
+        .setDesc('Select the callout type to use')
+        .addDropdown((dropdown) => {
+          const calloutTypes = {
+            'note': 'Note',
+            'abstract': 'Abstract',
+            'info': 'Info',
+            'todo': 'Todo',
+            'tip': 'Tip',
+            'success': 'Success',
+            'question': 'Question',
+            'warning': 'Warning',
+            'failure': 'Failure',
+            'danger': 'Danger',
+            'bug': 'Bug',
+            'example': 'Example',
+            'quote': 'Quote'
+          };
+    
+          dropdown
+            .addOptions(calloutTypes)
+            .setValue(this.plugin.settings.calloutType || 'tip')
+            .onChange(async (value) => {
+              this.plugin.settings.calloutType = value;
+              await this.plugin.saveSettings();
+              this.display();
+            });
+        });
+    }
+    
+    // Adding the preview section
+    this.addPreview(containerEl);
+  }
+
+  async addPreview(containerEl: HTMLElement) {
+    const previewContainer = containerEl.createEl('div', { cls: 'quran-lookup-preview' });
+    previewContainer.createEl('h3', { text: 'Preview' });
+  
+    let previewContent = '';
+    try {
+      // Use the existing getAyah() function to get the first verse of the 2nd chapter (2:1)
+      const verse = "2:2";
+      previewContent = await this.plugin.getAyah(verse);
+    } catch (error) {
+      console.error("Error fetching preview verse:", error);
+      previewContent = "Unable to load preview. Please check your settings.";
+    }
+  
+    // Clear previous preview content if any
+    previewContainer.empty();
+  
+    // Create the div to hold the Markdown preview with proper classes for styling
+    const markdownContainer = previewContainer.createEl('div', {
+      cls: 'markdown-preview-view',
+      attr: {
+        style: 'pointer-events: none;' // Disable any pointer events (read-only mode)
+      }
+    });
+  
+    // Add CSS classes matching Obsidian's styles for table, header, and cells
+    markdownContainer.classList.add('cm-embed-block', 'cm-table-widget', 'markdown-rendered');
+  
+    // Render markdown content as a read-only preview
+    MarkdownRenderer.renderMarkdown(previewContent, markdownContainer, '', this.plugin);
+  
+    // Add styles to the table for better visual match
+    const style = document.createElement('style');
+    style.textContent = `
+      .quran-lookup-preview table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      .quran-lookup-preview th,
+      .quran-lookup-preview td {
+        border: 1px solid transparent; /* Set the border color to transparent */
+        padding: 8px;
+        text-align: left;
+      }
+      .quran-lookup-preview .table-wrapper {
+        overflow-x: auto;
+      }
+      .quran-lookup-preview .table-editor {
+        border: 1px solid transparent; /* Set default border color to transparent */
+      }
+    `;
+    document.head.appendChild(style);
+  }
 }
