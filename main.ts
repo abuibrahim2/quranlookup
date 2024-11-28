@@ -106,16 +106,24 @@ const DisplayOptions: Record<number, string> = {
   2: "TIP Callout (original)",
 };
 
+const ArabicStyleOptions: Record<number, string> = {
+  0: "None",
+  1: "HTML span w/ class",
+  2: "Code Override (`)",
+};
+
 interface QuranLookupPluginSettings {
   translatorLanguage: string;
   translatorIndex: number;
   displayTypeIndex: number;
+  arabicStyleIndex: number;
   includeTranslation: boolean;
   removeParens: boolean;
   displayTable: boolean;
   displayCallOut: boolean;
   calloutType: string; // New field for callout type
   wrapQuranInCode: boolean; // New field to wrap Quran Arabic in backticks or not
+  wrapQuranInSpan: boolean;
 }
 
 interface surahMeta {
@@ -132,12 +140,14 @@ const DEFAULT_SETTINGS: QuranLookupPluginSettings = {
   translatorLanguage: "en",
   translatorIndex: 0,
   displayTypeIndex: 2,
+  arabicStyleIndex: 0,
   includeTranslation: true,
   removeParens: true,
   displayTable: false,
   displayCallOut: true,
   calloutType: 'tip', // Default callout type
-  wrapQuranInCode: false
+  wrapQuranInCode: false,
+  wrapQuranInSpan: false,
 };
 
 export default class QuranLookupPlugin extends Plugin {
@@ -213,6 +223,16 @@ export default class QuranLookupPlugin extends Plugin {
       : txtVal;
   }
 
+  applyArabicStyle(txtVal: string, styleIndex: number)  {
+    if (styleIndex == 2) {
+      return `<span class="quran-arabic">${txtVal}</span>`;
+    } else if (styleIndex == 1) {
+      return "`"  + txtVal + "`";
+    } else {
+      return txtVal;
+    }
+  }
+
   resolveAPIurl( surah: string, edition: string, startAyah: number, ayahRange = 1 ): string {
     return ( "https://api.alquran.cloud/v1/surah/" + surah + "/" + edition + "?offset=" + startAyah + "&limit=" + ayahRange );
   }
@@ -245,7 +265,8 @@ export default class QuranLookupPlugin extends Plugin {
       const urlEnglish = this.resolveAPIurl(surah, translator, ayah);
       const [arabic, english] = await this.fetchArabicAndTranslation(urlArabic, urlEnglish);
     
-      const arText = this.settings.wrapQuranInCode ? "`" + arabic.data.ayahs[0].text + "`" : arabic.data.ayahs[0].text;
+      const arText = this.applyArabicStyle(arabic.data.ayahs[0].text, this.settings.arabicStyleIndex);
+      //const arText = this.settings.wrapQuranInCode ? "`" + arabic.data.ayahs[0].text + "`" : arabic.data.ayahs[0].text;
       const enText = this.handleParens(english.data.ayahs[0].text, this.settings.removeParens);
       const surahName = english.data.englishName;
       const surahNumber = english.data.number;
@@ -268,7 +289,8 @@ export default class QuranLookupPlugin extends Plugin {
     } else {
       // Arabic Only
       const arabic = await this.fetchArabicOnly(urlArabic);
-      const arText = this.settings.wrapQuranInCode ? "`" + arabic.data.ayahs[0].text + "`" : arabic.data.ayahs[0].text;
+      const arText = this.applyArabicStyle(arabic.data.ayahs[0].text, this.settings.arabicStyleIndex);
+      //const arText = this.settings.wrapQuranInCode ? "`" + arabic.data.ayahs[0].text + "`" : arabic.data.ayahs[0].text;
       const surahName = arabic.data.name;
       const surahNumber = arabic.data.number;
       const ayahNumber = arabic.data.ayahs[0].numberInSurah;
@@ -276,16 +298,16 @@ export default class QuranLookupPlugin extends Plugin {
       const verseHeader = `${surahName} (${surahNumber}:${ayahNumber})`;
     
       if (this.settings.displayTypeIndex === 1) {
-      // Markdown Table
-      result += `| ${verseHeader} |\n| ---- |\n`;
-      result += "| " + arText + " |\n";
+        // Markdown Table
+        result += `| ${verseHeader} |\n| ---- |\n`;
+        result += "| " + arText + " |\n";
       } else if (this.settings.displayTypeIndex === 2) {
-      // TIP Callout
-      const calloutType = this.settings.calloutType || 'tip';
-      result += `> [!${calloutType}]+ ${verseHeader}\n> ` + arText + "\n>";
+        // TIP Callout
+        const calloutType = this.settings.calloutType || 'tip';
+        result += `> [!${calloutType}]+ ${verseHeader}\n> ` + arText + "\n>";
       } else {
-      // Text Only
-      result += `${verseHeader}\n` + arText + "\n";
+        // Text Only
+        result += `${verseHeader}\n` + arText + "\n";
       }
     }
     
@@ -293,90 +315,90 @@ export default class QuranLookupPlugin extends Plugin {
   }
   
   async getAyahRange(verse: string): Promise<string> {
-	const surah = verse.split(":")[0];
-	const ayahRangeText = verse.split(":")[1];
-	const startAyah = parseInt(ayahRangeText.split("-")[0]) - 1;
-	const endAyah = parseInt(ayahRangeText.split("-")[1]);
-	const ayahRange = endAyah - startAyah;
-  
-	const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", startAyah, ayahRange);
-	let result = "";
-  
-	if (this.settings.includeTranslation) {
-	  const translator = Translations[this.settings.translatorLanguage][this.settings.translatorIndex].identifier;
-	  const urlEnglish = this.resolveAPIurl(surah, translator, startAyah, ayahRange);
-	  const [arabic, english] = await this.fetchArabicAndTranslation(urlArabic, urlEnglish);
-  
-	  const surahName = english.data.englishName;
-	  const surahNumber = english.data.number;
-	  const verseHeader = `${surahName} (${surahNumber}:${ayahRangeText})`;
-  
-	  if (this.settings.displayTypeIndex === 1) {
-		// Markdown Table
-		result += `| ${verseHeader} |  |\n| ---- | ---- |\n`;
-		for (let i = 0; i < arabic.data.ayahs.length; i++) {
-		  const arText = arabic.data.ayahs[i].text;
-		  const enText = this.handleParens(english.data.ayahs[i].text, this.settings.removeParens);
-		  result += `| ${enText} | ` + arText + " |\n";
-		}
-	  } else if (this.settings.displayTypeIndex === 2) {
-		// TIP Callout
-    const calloutType = this.settings.calloutType || 'tip';
-		result += `> [!${calloutType}]+ ${verseHeader}\n`;
-		for (let i = 0; i < arabic.data.ayahs.length; i++) {
-		  const arText = arabic.data.ayahs[i].text;
-		  const enText = this.handleParens(english.data.ayahs[i].text, this.settings.removeParens);
-		  result += `> ${enText}\n> ` + arText + "\n>\n";
-		}
-		result = result.trim();
-	  } else {
-		// Text Only
-		result += `${verseHeader}\n`;
-		for (let i = 0; i < arabic.data.ayahs.length; i++) {
-		  const arText = arabic.data.ayahs[i].text;
-		  const enText = this.handleParens(english.data.ayahs[i].text, this.settings.removeParens);
-		  result += `${enText}\n` + arText + "\n\n";
-		}
-		result = result.trim();
-	  }
-	} else {
-	  // Arabic Only
-	  const arabic = await this.fetchArabicOnly(urlArabic);
-  
-	  const surahName = arabic.data.name;
-	  const surahNumber = arabic.data.number;
-	  const verseHeader = `${surahName} (${surahNumber}:${ayahRangeText})`;
-  
-	  if (this.settings.displayTypeIndex === 1) {
-		// Markdown Table
-		result += `| ${verseHeader} |\n| ---- |\n`;
-		for (let i = 0; i < arabic.data.ayahs.length; i++) {
-		  const arText = arabic.data.ayahs[i].text;
-		  result += "| " + arText + " |\n";
-		}
-	  } else if (this.settings.displayTypeIndex === 2) {
-		// TIP Callout
-    const calloutType = this.settings.calloutType || 'tip';
-		result += `> [!${calloutType}]+ ${verseHeader}\n`;
-		for (let i = 0; i < arabic.data.ayahs.length; i++) {
-		  const arText = arabic.data.ayahs[i].text;
-		  result += "> " + arText + "\n>\n";
-		}
-		result = result.trim();
-	  } else {
-		// Text Only
-		result += `${verseHeader}\n`;
-		for (let i = 0; i < arabic.data.ayahs.length; i++) {
-		  const arText = arabic.data.ayahs[i].text;
-		  result += arText + "\n\n";
-		}
-		result = result.trim();
-	  }
-	}
-  
-	return result;
+    const surah = verse.split(":")[0];
+    const ayahRangeText = verse.split(":")[1];
+    const startAyah = parseInt(ayahRangeText.split("-")[0]) - 1;
+    const endAyah = parseInt(ayahRangeText.split("-")[1]);
+    const ayahRange = endAyah - startAyah;
+    
+    const urlArabic = this.resolveAPIurl(surah, "ar.quran-simple", startAyah, ayahRange);
+    let result = "";
+    
+    if (this.settings.includeTranslation) {
+      const translator = Translations[this.settings.translatorLanguage][this.settings.translatorIndex].identifier;
+      const urlEnglish = this.resolveAPIurl(surah, translator, startAyah, ayahRange);
+      const [arabic, english] = await this.fetchArabicAndTranslation(urlArabic, urlEnglish);
+    
+      const surahName = english.data.englishName;
+      const surahNumber = english.data.number;
+      const verseHeader = `${surahName} (${surahNumber}:${ayahRangeText})`;
+    
+      if (this.settings.displayTypeIndex === 1) {
+        // Markdown Table
+        result += `| ${verseHeader} |  |\n| ---- | ---- |\n`;
+        for (let i = 0; i < arabic.data.ayahs.length; i++) {
+          const arText = this.applyArabicStyle(arabic.data.ayahs[i].text, this.settings.arabicStyleIndex);
+          //const arText = this.settings.wrapQuranInCode ? "`" + arabic.data.ayahs[i].text + "`" : arabic.data.ayahs[i].text;
+          const enText = this.handleParens(english.data.ayahs[i].text, this.settings.removeParens);
+          result += `| ${enText} | ` + arText + " |\n";
+        }
+      } else if (this.settings.displayTypeIndex === 2) {
+        // TIP Callout
+        const calloutType = this.settings.calloutType || 'tip';
+        result += `> [!${calloutType}]+ ${verseHeader}\n`;
+        for (let i = 0; i < arabic.data.ayahs.length; i++) {
+          const arText = this.applyArabicStyle(arabic.data.ayahs[i].text, this.settings.arabicStyleIndex);
+          const enText = this.handleParens(english.data.ayahs[i].text, this.settings.removeParens);
+          result += `> ${enText}\n> ` + arText + "\n>\n";
+        }
+        result = result.trim();
+      } else {
+        // Text Only
+        result += `${verseHeader}\n`;
+        for (let i = 0; i < arabic.data.ayahs.length; i++) {
+          const arText = this.applyArabicStyle(arabic.data.ayahs[i].text, this.settings.arabicStyleIndex);
+          const enText = this.handleParens(english.data.ayahs[i].text, this.settings.removeParens);
+          result += `${enText}\n` + arText + "\n\n";
+        }
+        result = result.trim();
+      }
+    } else {
+      // Arabic Only
+      const arabic = await this.fetchArabicOnly(urlArabic);
+    
+      const surahName = arabic.data.name;
+      const surahNumber = arabic.data.number;
+      const verseHeader = `${surahName} (${surahNumber}:${ayahRangeText})`;
+    
+      if (this.settings.displayTypeIndex === 1) {
+        // Markdown Table
+        result += `| ${verseHeader} |\n| ---- |\n`;
+        for (let i = 0; i < arabic.data.ayahs.length; i++) {
+          const arText = arabic.data.ayahs[i].text;
+          result += "| " + arText + " |\n";
+        }
+      } else if (this.settings.displayTypeIndex === 2) {
+        // TIP Callout
+        const calloutType = this.settings.calloutType || 'tip';
+        result += `> [!${calloutType}]+ ${verseHeader}\n`;
+        for (let i = 0; i < arabic.data.ayahs.length; i++) {
+          const arText = arabic.data.ayahs[i].text;
+          result += "> " + arText + "\n>\n";
+        }
+        result = result.trim();
+      } else {
+        // Text Only
+        result += `${verseHeader}\n`;
+        for (let i = 0; i < arabic.data.ayahs.length; i++) {
+          const arText = arabic.data.ayahs[i].text;
+          result += arText + "\n\n";
+        }
+        result = result.trim();
+      }
+    }
+    
+    return result;
   }
-  
 }  
 
 class QuranLookupSettingTab extends PluginSettingTab {
@@ -457,7 +479,8 @@ class QuranLookupSettingTab extends PluginSettingTab {
           });
       });
     }
-    new Setting(containerEl)
+
+    /*new Setting(containerEl)
       .setName('Wrap Quran Arabic in Code Snippet')
       .setDesc('If true, wraps the Arabic verse in backticks to use code formatting')
       .addToggle((toggle) => {
@@ -465,6 +488,20 @@ class QuranLookupSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.wrapQuranInCode)
           .onChange(async (value) => {
             this.plugin.settings.wrapQuranInCode = value;
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });*/
+
+    new Setting(containerEl)
+      .setName('Arabic Styling Options')
+      .setDesc('Wraps the Arabic verse in HTML Span CSS, backticks, or None')
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOptions(ArabicStyleOptions)
+          .setValue(this.plugin.settings.arabicStyleIndex.toString())
+          .onChange(async (value) => {
+            this.plugin.settings.arabicStyleIndex = +value;
             await this.plugin.saveSettings();
             this.display();
           });

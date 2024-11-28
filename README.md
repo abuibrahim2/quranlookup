@@ -1,4 +1,4 @@
-## بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيْ
+## بِسْمِ ٱللّٰهِ ٱلرَّحْمٰنِ ٱلرَّحِيْم
 # Obsidian Quran Lookup Plugin
 [![CodeQL](https://github.com/abuibrahim2/quranlookup/actions/workflows/codeql.yml/badge.svg)](https://github.com/abuibrahim2/quranlookup/actions/workflows/codeql.yml)
 
@@ -35,31 +35,58 @@ It looks up based on `Surah-Number:Ayah-Number` or `Surah-Name:Ayah-Number` synt
 
 ![obsidian quran lookup range](/docs/quran-lookup-chained.gif?raw=true)
 
+### New in Version 0.2
+A few new features have been added in v0.2. 
+1. The ability to hide or show the translation, useful for those who just want the arabic to be displayed
+2. All language and translator selection, now users can get any language and translation API provides
+3. Arabic Styling Options with CSS so that the Arabic text can display using more appropriate font and font-size
+4. Display Container types, text-only, markdown table, and additional Obsidian Callout customization
+5. Live Preview in the Settings screen so you can see what a setting change would look like in Obsidian
+
 ## Settings
-This plugin has some small customizations: in `Community Plugins > Installed Plugins > QuranLookup (Options)`
+This plugin has some customizations: in `Community Plugins > Installed Plugins > QuranLookup (Options)`
 
 ![obsidian quran lookup settings](/docs/settings.png?raw=true)
 
-### Translation Types
-- You can choose from a variety of english translation types based on the [API language selections](http://api.alquran.cloud/v1/edition/language/en):
+### Translator languages and Translation Types
+- You can choose from a variety of languages, and translators based on the [API language selections](http://api.alquran.cloud/v1/edition/language/en):
 
-  | Option | Translator |
-  | ------------| ---------|
-  | en.ahmedali | Ahmed Ali|
-  | en.ahmedraza | Ahmed Raza Khan|
-  | en.arberry | A. J. Arberry|
-  | en.asad | Muhammad Asad|
-  | en.daryabadi | Abdul Majid Daryabadi|
-  | en.hilali | Muhammad Taqi-ud-Din al-Hilali and Muhammad Muhsin Khan|
-  | en.pickthall | Mohammed Marmaduke William Pickthall|
-  | en.qaribullah | Hasan al-Fatih Qaribullah and Ahmad Darwish|
-  | en.sahih | Saheeh International|
-  | en.sarwar | Muhammad Sarwar|
-  | en.yusufali | Abdullah Yusuf Ali|
-  | en.maududi | Abul Ala Maududi|
-  | en.shakir | Mohammad Habib Shakir|
-  | en.transliteration | English Transliteration|
-  | en.itani | Clear Qur'an by Talal Itani |
+| Code | Language  | Translators                                      |
+|------|-----------|--------------------------------------------------|
+| EN   | ENGLISH   | Ahmed Ali, Ahmed Raza Khan, Arberry, Asad, Daryabadi, Hilali & Khan, Pickthall, Qaribullah & Darwish, Saheeh International, Sarwar, Yusuf Ali, Maududi, Shakir, Transliteration, Ibrahim Walk, Clear Qur'an - Talal Itani, Mubarakpuri, Qarai, Wahiduddin Khan |
+| FR   | FRENCH    | Hamidullah                                       |
+| DE   | GERMAN    | Abu Rida, Bubenheim & Elyas                      |
+| AZ   | AZERBAIJANI | Məmmədəliyev & Bünyadov, Musayev               |
+| BN   | BENGALI   | Muhiuddin Khan                                   |
+| CS   | CZECH     | Hrbek, Nykl                                      |
+| DV   | DHIVEHI   | Office of the President of Maldives              |
+| FA   | FARSI     | Ayati, Fooladvand, Elahi Ghomshei                |
+| HA   | HAUSA     | Gumi                                             |
+| HI   | HINDI     | Suhel Farooq Khan and Saifur Rahman Nadwi        |
+| ID   | INDONESIAN| Bahasa Indonesia                                 |
+| IT   | ITALIAN   | Piccardo                                         |
+| JA   | JAPANESE  | Japanese                                         |
+| KO   | KOREAN    | Korean                                           |
+| KU   | KURDISH   | Burhan Muhammad-Amin                             |
+| ML   | MALAYALAM | Cheriyamundam Abdul Hameed and Kunhi Mohammed Parappoor |
+| NL   | DUTCH     | Keyzer                                           |
+| NO   | NORWEGIAN | Einar Berg                                       |
+| PL   | POLISH    | Bielawskiego                                     |
+| PT   | PORTUGUESE| El-Hayek                                         |
+| RO   | ROMANIAN  | Grigore                                          |
+| RU   | RUSSIAN   | Kuliev, Osmanov, Porokhova                       |
+| SD   | SINDHI    | Amroti                                           |
+| SO   | SOMALI    | Abduh                                            |
+| SQ   | ALBANIAN  | Sherif Ahmeti, Feti Mehdiu, Efendi Nahi          |
+| SV   | SWEDISH   | Bernström                                        |
+| SW   | SWAHILI   | Al-Barwani                                       |
+| TA   | TAMIL     | Jan Turst Foundation                             |
+| TH   | THAI      | King Fahad Quran Complex                         |
+| TR   | TURKISH   | Suleyman Ates, Ali Bulaç, Diyanet İşleri         |
+| TT   | TATAR     | Yakub Ibn Nugman                                 |
+| UG   | UYGHUR    | Muhammad Saleh                                   |
+| UR   | URDU      | Ahmed Ali, Fateh Muhammad Jalandhry, Syed Zeeshan Haider Jawadi |
+| UZ   | UZBEK     | Muhammad Sodik Muhammad Yusuf                   |
 
 ### Remove Parenthesis Contents
 #### ${🛑\ {\color{red}Experimental}}\ 🛑\$
@@ -69,6 +96,45 @@ This plugin has some small customizations: in `Community Plugins > Installed Plu
 ![obsidian quran remove paren](/docs/quran-lookup-remove-paren.png?raw=true)
 
 - NOTE: This is experimental and while I have tried to test it, it may not work 100% all the time so extra eyes QA'ing it are appreciated!
+
+### Arabic Styling Options
+#### Wrap Quran Arabic in HTML Span, Code Snippet, None
+- I wanted to use customized fonts and custom CSS for the Arabic script because the default isn't as appealing and I like the Arabic font larger to be easier to read. 
+
+My options were to embed these settings in a CSS file and either:
+
+A. Wrap the Arabic text in an explicit class assignment like 
+```
+arText = `<span class="quran-arabic">${arText}</span>`
+```
+This applies the styling however puts html code in with the text which gets in the way when selecting orediting or copying
+
+B. Override/Repurpose markdown functionality to apply the class, for example, the backtick "`" for code, like
+```
+arText = "`" + arText + "`"; // Wrap in backticks if the setting is enabled
+```
+This applies the styling with minimal impact to selecting or copying the text, however it does override the `code` styling so any `code` markdown you have will now have this same CSS styling applied to it. Not an issue if you don't typically use backticks `code`.
+
+C. None
+No application of custom tags or styling in the Arabic script (you like the default font or you are applying the font you prefer in the way you like)
+
+### Display Container Type
+The previous version only had one display option which was the (usually green colored) Obsidian `TIP` Callout. For info on Obsidian callouts you can refer to this documentation.
+
+I've added more customization to the Obsidian Callout display type as well as two more display options: **Text Only**, and **Markdown Table**
+
+#### Text Only
+Self explanatory, this would only output the text of the translation and verse without additional markdown wrappigns
+
+#### Markdown Table
+This pastes the verses in a [Markdown Table](https://help.obsidian.md/Editing+and+formatting/Advanced+formatting+syntax#Tables) view with the arabic verse on the right column and the translation on the left. 
+
+#### Obsidian Callout
+Encapsulates the verse in an obsidian callout like previously except this time an additional setting will appear that will allow you to choose which Callout type to apply any of the various **Callout Types** that obsidian supports. For more information see: [Obsidian Callouts](https://help.obsidian.md/Editing+and+formatting/Callouts)
+
+### Live Preview
+Now there is a _Live Preview_ shown at the bottom of the Settings Page so you can see how your selections will look when applied on your page.
+
 ## Attributions
 ### The Quran API and Source(s)
 The Quran verses are retrieved from
