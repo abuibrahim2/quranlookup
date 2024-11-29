@@ -224,9 +224,9 @@ export default class QuranLookupPlugin extends Plugin {
   }
 
   applyArabicStyle(txtVal: string, styleIndex: number)  {
-    if (styleIndex == 2) {
+    if (styleIndex == 1) {
       return `<span class="quran-arabic">${txtVal}</span>`;
-    } else if (styleIndex == 1) {
+    } else if (styleIndex == 2) {
       return "`"  + txtVal + "`";
     } else {
       return txtVal;
