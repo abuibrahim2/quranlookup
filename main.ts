@@ -124,6 +124,8 @@ interface QuranLookupPluginSettings {
   calloutType: string; // New field for callout type
   wrapQuranInCode: boolean; // New field to wrap Quran Arabic in backticks or not
   wrapQuranInSpan: boolean;
+  fontFamily: string;
+  fontSize: string;
 }
 
 interface surahMeta {
@@ -148,6 +150,8 @@ const DEFAULT_SETTINGS: QuranLookupPluginSettings = {
   calloutType: 'tip', // Default callout type
   wrapQuranInCode: false,
   wrapQuranInSpan: false,
+  fontFamily: 'me_quran',
+  fontSize: '24px',
 };
 
 export default class QuranLookupPlugin extends Plugin {
@@ -202,6 +206,9 @@ export default class QuranLookupPlugin extends Plugin {
 
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new QuranLookupSettingTab(this.app, this));
+
+    // Apply initial styles
+    this.updateStyles();
   }
 
   onunload() {}
@@ -221,6 +228,67 @@ export default class QuranLookupPlugin extends Plugin {
           .replace(/ \[(.+?)\]/g, " ") // remove []
           .replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
       : txtVal;
+  }
+
+  updateStyles() {
+    // Convert StyleSheetList to an array
+    const sheets = Array.from(document.styleSheets);
+
+    for (const sheet of sheets) {
+        try {
+            // Access rules within the stylesheet
+            const rules = sheet.cssRules || sheet.rules;
+            for (const rule of Array.from(rules)) { // Convert CSSRuleList to an array
+                // Find the .quran-arabic CSS rule
+                if ((rule as CSSStyleRule).selectorText === '.quran-arabic') {
+                    (rule as CSSStyleRule).style.fontFamily = `${this.settings.fontFamily}, 'Segoe UI Fixed', monospace`;
+                    (rule as CSSStyleRule).style.fontSize = this.settings.fontSize;
+                }
+            }
+        } catch (e) {
+            // Catch potential cross-origin errors, ignore
+            console.warn('Could not access stylesheet:', e);
+        }
+    }
+
+    // Updates the Code styling override style setting
+    if (this.settings.arabicStyleIndex == 2) {
+      this.toggleCodeStyling(true);
+    } else {
+      this.toggleCodeStyling(false);
+    }
+  }
+
+  toggleCodeStyling(apply: boolean): void {
+    const styleId = "quran-arabic-code-style";
+
+    // Remove existing dynamic style
+    const existingStyle = document.getElementById(styleId);
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+
+    // Add styles dynamically if `apply` is true
+    if (apply) {
+        const style = document.createElement("style");
+        style.id = styleId;
+        style.textContent = `
+            .cm-s-obsidian span.cm-inline-code,
+            .cm-s-obsidian .HyperMD-codeblock,
+            .markdown-preview-view code,
+            .callout-content code,
+            .markdown-rendered code,
+            .table-cell-wrapper .esm-rtl,
+            td.esm-rtl {
+                background-color: transparent !important;
+                font-family: ${this.settings.fontFamily}, 'Segoe UI Fixed', monospace;
+                font-size: ${this.settings.fontSize} !important;
+                line-height: 200%;
+                direction: rtl;
+            }
+        `;
+        document.head.appendChild(style);
+    }
   }
 
   applyArabicStyle(txtVal: string, styleIndex: number)  {
@@ -502,12 +570,82 @@ class QuranLookupSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.arabicStyleIndex.toString())
           .onChange(async (value) => {
             this.plugin.settings.arabicStyleIndex = +value;
+            if (this.plugin.settings.arabicStyleIndex == 2) {
+              this.plugin.toggleCodeStyling(true);
+            } else {
+              this.plugin.toggleCodeStyling(false);
+            }
             await this.plugin.saveSettings();
             this.display();
           });
       });
 
-	  new Setting(containerEl)
+      // Font Family Selector
+    new Setting(containerEl)
+      .setName('Font Family')
+      .setDesc('Select the font family for the Quran text.')
+      .addDropdown(dropdown => {
+          dropdown.addOptions({
+              'me_quran': 'me_quran',
+              'NooreHidayah': 'NooreHidayah',
+              'Uthmani': 'Uthmani',
+          })
+          .setValue(this.plugin.settings.fontFamily)
+          .onChange(async (value) => {
+              this.plugin.settings.fontFamily = value;
+              await this.plugin.saveSettings();
+              this.plugin.updateStyles();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName('Font Size')
+      .setDesc('Set the font size for the Quran text.')
+      .then(setting => {
+          const container = setting.controlEl.createDiv({ cls: 'font-size-container' });
+  
+          // Create the text field
+          const textField = container.createEl('input', { type: 'text' });
+          textField.value = this.plugin.settings.fontSize;
+          textField.addEventListener('input', async (event) => {
+              this.plugin.settings.fontSize = textField.value;
+              await this.plugin.saveSettings();
+              this.plugin.updateStyles();
+          });
+  
+          // Create the plus button
+          const plusButton = container.createEl('button', { text: '+' });
+          plusButton.addEventListener('click', async () => {
+              let fontSize = parseInt(this.plugin.settings.fontSize.replace('px', ''), 10);
+              fontSize = isNaN(fontSize) ? 24 : fontSize; // Default to 24 if invalid
+              fontSize += 2;
+  
+              this.plugin.settings.fontSize = `${fontSize}px`;
+              await this.plugin.saveSettings();
+              this.plugin.updateStyles();
+  
+              // Update the text field value
+              textField.value = this.plugin.settings.fontSize;
+          });
+  
+          // Create the minus button
+          const minusButton = container.createEl('button', { text: '-' });
+          minusButton.addEventListener('click', async () => {
+              let fontSize = parseInt(this.plugin.settings.fontSize.replace('px', ''), 10);
+              fontSize = isNaN(fontSize) ? 24 : fontSize; // Default to 24 if invalid
+              fontSize = Math.max(2, fontSize - 2); // Prevent size going below 2px
+  
+              this.plugin.settings.fontSize = `${fontSize}px`;
+              await this.plugin.saveSettings();
+              this.plugin.updateStyles();
+  
+              // Update the text field value
+              textField.value = this.plugin.settings.fontSize;
+          });
+      });
+  
+
+    new Setting(containerEl)
       .setName('Display Container Type')
       .setDesc('Which container to use for displaying the verses')
       .addDropdown((dropdown) => {

@@ -6,3 +6,48 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+  @font-face {
+    font-family: 'me_quran';
+    src: url('https://cdn.alquran.cloud/public/fonts/me_quran-webfont.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+  }
+  
+  @font-face {
+    font-family: 'NooreHidayah';
+    src: url('https://cdn.alquran.cloud/public/fonts/noorehidayat.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+  
+  @font-face {
+    font-family: 'Uthmani';
+    src: url('https://cdn.alquran.cloud/public/fonts/uthman_tn09.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  .quran-arabic {
+    background-color: transparent !important;
+    font-family: 'me_quran', 'Segoe UI Fixed', monospace;
+    font-size: 24px !important;
+    line-height: 200%;
+    direction: rtl;
+  }
+
+  .font-size-container {
+      display: flex;
+      align-items: center;
+      gap: 8px; /* Add spacing between elements */
+  }  
+  
+  .font-size-container input[type="text"] {
+      width: 50px;
+      text-align: center;
+  }  
+  
+  .font-size-container button {
+      padding: 4px 8px;
+      cursor: pointer;
+  }
