@@ -749,5 +749,4 @@ class QuranLookupSettingTab extends PluginSettingTab {
     `;
     document.head.appendChild(style);
   }
-  
 }
