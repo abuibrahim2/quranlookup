@@ -38,8 +38,8 @@ It looks up based on `Surah-Number:Ayah-Number` or `Surah-Name:Ayah-Number` synt
 ### New in Version 0.2
 A few new features have been added in v0.2. 
 1. The ability to hide or show the translation, useful for those who just want the arabic to be displayed
-2. All language and translator selection, now users can get any language and translation API provides
-3. Arabic Styling Options with CSS so that the Arabic text can display using more appropriate font and font-size
+2. All language and translator selection, now users can get any language and translation API provides. This removes the previous custom translator option as that exists now in the present options
+3. Arabic Styling Options with CSS so that the Arabic text can display using more appropriate font-family and font-size. This adds the choice for a few nicer looking arabic fonts, as well as font-size selection options
 4. Display Container types, text-only, markdown table, and additional Obsidian Callout customization
 5. Live Preview in the Settings screen so you can see what a setting change would look like in Obsidian
 

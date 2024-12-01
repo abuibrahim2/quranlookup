@@ -103,7 +103,7 @@ const Translations: Record<string, { identifier: string; name: string }[]> = {
 const DisplayOptions: Record<number, string> = {
   0: "Text Only",
   1: "Markdown Table",
-  2: "TIP Callout (original)",
+  2: "Obsidian Callout (original)",
 };
 
 const ArabicStyleOptions: Record<number, string> = {
