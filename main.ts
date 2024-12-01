@@ -163,12 +163,6 @@ export default class QuranLookupPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
 
-    // Setup the sura name list for fuzzy recall
-    this.surahJson = require("./surahSlim.json");
-    this.surahList = this.surahJson.map((m) => m.title);
-    const options = { keys: ["title"] };
-    this.fuse = new Fuse(this.surahJson, options);
-
     // This adds an editor command that can perform some operation on the current editor instance
     this.addCommand({
       id: "ayah-list-command",
@@ -186,6 +180,12 @@ export default class QuranLookupPlugin extends Plugin {
           const surah = verse.split(":")[0];
           if (isNaN(parseInt(surah))) {
             let surahIndex = 0;
+
+            // validate that fuse was initialized first
+            if (!this.fuse) {
+              console.error('Fuse.js is not initialized.');
+              return;
+            }
             const surahNum = this.fuse.search(surah)[0].item;
             if (surahNum != undefined) {
               surahIndex = parseInt((surahNum as surahMeta).index);
@@ -215,6 +215,27 @@ export default class QuranLookupPlugin extends Plugin {
 
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+
+  async onLayoutReady() {
+    console.log('Layout is ready. Initializing Surah data...');
+    await this.initializeSurahData();
+  }
+
+  private async initializeSurahData() {
+    try {
+        // Load surah data
+        this.surahJson = require("./surahSlim.json");
+        this.surahList = this.surahJson.map((m) => m.title);
+
+        // Initialize Fuse.js
+        const options = { keys: ['title'] };
+        this.fuse = new Fuse(this.surahJson, options);
+
+        console.log('Surah data initialized successfully.');
+    } catch (error) {
+        console.error('Failed to initialize Surah data:', error);
+    }
   }
 
   async saveSettings() {
