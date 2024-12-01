@@ -46,7 +46,7 @@ A few new features have been added in v0.2.
 ## Settings
 This plugin has some customizations: in `Community Plugins > Installed Plugins > QuranLookup (Options)`
 
-![obsidian quran lookup settings](/docs/settings.png?raw=true)
+![obsidian quran lookup settings](/docs/Quran_Lookup_Settings.png?raw=true)
 
 ### Translator languages and Translation Types
 - You can choose from a variety of languages, and translators based on the [API language selections](http://api.alquran.cloud/v1/edition/language/en):
@@ -123,11 +123,15 @@ The previous version only had one display option which was the (usually green co
 
 I've added more customization to the Obsidian Callout display type as well as two more display options: **Text Only**, and **Markdown Table**
 
-#### Text Only
+#### Text Only (_NEW_)
 Self explanatory, this would only output the text of the translation and verse without additional markdown wrappigns
 
-#### Markdown Table
-This pastes the verses in a [Markdown Table](https://help.obsidian.md/Editing+and+formatting/Advanced+formatting+syntax#Tables) view with the arabic verse on the right column and the translation on the left. 
+![text only](/docs/Quran_Text_Only.png?raw=true)
+
+#### Markdown Table (_NEW_)
+This pastes the verse or verses in a [Markdown Table](https://help.obsidian.md/Editing+and+formatting/Advanced+formatting+syntax#Tables) view with the arabic verse on the right column and the translation on the left. 
+
+![text only](/docs/Quran_Markdown_Table.png?raw=true)
 
 #### Obsidian Callout
 Encapsulates the verse in an obsidian callout like previously except this time an additional setting will appear that will allow you to choose which Callout type to apply any of the various **Callout Types** that obsidian supports. For more information see: [Obsidian Callouts](https://help.obsidian.md/Editing+and+formatting/Callouts)
@@ -153,12 +157,12 @@ For the fuzzy name search, it uses a simple index file surahSlim.json and fuse.j
 
 ## Future Feature Ideas (logged in [project Issues](https://github.com/abuibrahim2/quranlookup/issues))
 - [ ] Add error notification for 'surah not found' or 'ayah index out of range' (currently doesn't do anything if invalid string is attempted to be upon)
-- [ ] Show the translator name in the settings
+- [x] Show the translator name in the settings
 - [ ] Toggle Display of verses callout sections: e.g. show Arabic Only, Translation Only
-- [ ] Right-To-Left alignment for Arabic text
-- [ ] Support display of alternate arabic fonts
-- [ ] Add support for translations in other languages 
-- [ ] Allow for customization of the Call-out style in the settings (e.g. abstract, info, note, success, question, warning, failure, danger, bug, example, quote, custom, none)
+- [x] Right-To-Left alignment for Arabic text
+- [x] Support display of alternate arabic fonts
+- [x] Add support for translations in other languages 
+- [x] Allow for customization of the Call-out style in the settings (e.g. abstract, info, note, success, question, warning, failure, danger, bug, example, quote, custom, none)
 - [ ] Give option to show dialog with preview and style options each time (like the Admonition plugins 'Insert Admonition' dialog)
 - [ ] Add option to toggle to use 'Admonition' style syntax instead of obsidian call-out style
 - [ ] Provide external links to ayah in websites like quran.com
