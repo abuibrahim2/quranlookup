@@ -7,6 +7,11 @@ If your plugin does not need CSS, delete this file.
 
 */
 
+  @import url('https://fonts.googleapis.com/earlyaccess/amiri.css');
+  .font-amiri {
+    font-family: 'Amiri', serif;
+  }
+
   @font-face {
     font-family: 'me_quran';
     src: url('https://cdn.alquran.cloud/public/fonts/me_quran-webfont.otf') format('opentype');
@@ -26,6 +31,36 @@ If your plugin does not need CSS, delete this file.
     src: url('https://cdn.alquran.cloud/public/fonts/uthman_tn09.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'Quran';
+    src: url('https://cdn.alquran.cloud/public/fonts/QUR_STD.TTF');
+  }
+
+  @font-face {
+    font-family: 'kfc_naskh';
+    src: url('https://cdn.alquran.cloud/public/fonts/kfc_naskh-webfont.ttf');
+  }
+
+  @font-face {
+    font-family: 'scheherazade';
+    src: url('https://cdn.alquran.cloud/public/fonts/scheherazade-webfont.ttf');
+  }
+
+  @font-face {
+    font-family: 'Kitab-Regular';
+    src: url('https://cdn.alquran.cloud/public/fonts/Kitab-Regular.ttf');
+  }
+
+  @font-face {
+    font-family: 'pdms_saleem';
+    src: url('https://cdn.alquran.cloud/public/fonts/pdms_saleem-webfont.ttf');
+  }
+
+  @font-face {
+    font-family: 'xb_zar-webfont';
+    src: url('https://cdn.alquran.cloud/public/fonts/xb_zar-webfont.ttf');
   }
 
   .quran-arabic {
@@ -50,4 +85,164 @@ If your plugin does not need CSS, delete this file.
   .font-size-container button {
       padding: 4px 8px;
       cursor: pointer;
+  }
+
+  /* Search Modal Styles */
+  .search-result-container {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  .search-result-reference {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .search-result-arabic {
+    font-size: 1.4em;
+    text-align: right;
+    margin: 8px 0;
+    font-family: "Noto Naskh Arabic", "Traditional Arabic", serif;
+  }
+
+  .search-result-translation {
+    color: var(--text-normal);
+    line-height: 1.4;
+  }
+
+  .suggestion-item {
+    padding: 8px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  .suggestion-item:last-child {
+    border-bottom: none;
+  }
+
+  .suggestion-title {
+    font-weight: var(--font-medium);
+    margin-bottom: 4px;
+  }
+
+  .suggestion-text {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    margin-bottom: 4px;
+  }
+
+  .suggestion-arabic {
+    font-family: var(--arabic-font-family, "me_quran");
+    font-size: 1.5em;
+    direction: rtl;
+    text-align: right;
+    line-height: 200%;
+    margin-top: 10px;
+  }
+
+  .suggestion-item.is-selected {
+    background-color: var(--background-modifier-active);
+  }
+
+  .suggestion-item:hover {
+    background-color: var(--background-modifier-hover);
+  }
+
+  .search-controls-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  .search-arabic-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .search-arabic-container input[type="checkbox"] {
+    margin: 0;
+  }
+
+  .search-arabic-container label {
+    margin: 0;
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+  }
+
+  .search-controls-container button {
+    margin: 0;
+    padding: 4px 12px;
+  }
+
+  .arabic-text {
+    font-family: var(--arabic-font-family, "me_quran");
+    font-size: 2em;
+    direction: rtl;
+    line-height: 200%;
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+
+  .surah-reference {
+    color: #00BCD4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .verse-reference {
+    color: #666;
+    font-size: 0.9em;
+  }
+
+  .search-results-header {
+    padding: 10px;
+    color: #666;
+    font-size: 0.9em;
+  }
+
+  .search-results-count {
+    font-weight: 500;
+  }
+
+  .search-results-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid var(--background-modifier-border);
+  }
+
+  .pagination-info {
+    color: #666;
+    font-size: 0.9em;
+    margin-left: auto;
+  }
+
+  .search-pagination {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 auto;
+  }
+
+  .pagination-controls button {
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .pagination-controls span {
+    min-width: 100px;
+    text-align: center;
   }
