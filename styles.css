@@ -99,13 +99,6 @@ If your plugin does not need CSS, delete this file.
     margin-bottom: 4px;
   }
 
-  .search-result-arabic {
-    font-size: 1.4em;
-    text-align: right;
-    margin: 8px 0;
-    font-family: "Noto Naskh Arabic", "Traditional Arabic", serif;
-  }
-
   .search-result-translation {
     color: var(--text-normal);
     line-height: 1.4;
@@ -130,15 +123,6 @@ If your plugin does not need CSS, delete this file.
     color: var(--text-muted);
     font-size: var(--font-ui-smaller);
     margin-bottom: 4px;
-  }
-
-  .suggestion-arabic {
-    font-family: var(--arabic-font-family, "me_quran");
-    font-size: 1.5em;
-    direction: rtl;
-    text-align: right;
-    line-height: 200%;
-    margin-top: 10px;
   }
 
   .suggestion-item.is-selected {
@@ -176,15 +160,6 @@ If your plugin does not need CSS, delete this file.
   .search-controls-container button {
     margin: 0;
     padding: 4px 12px;
-  }
-
-  .arabic-text {
-    font-family: var(--arabic-font-family, "me_quran");
-    font-size: 2em;
-    direction: rtl;
-    line-height: 200%;
-    margin-top: 4px;
-    margin-bottom: 4px;
   }
 
   .surah-reference {

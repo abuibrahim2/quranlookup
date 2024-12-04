@@ -221,12 +221,13 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
     totalPages = 1;
     paginationEl: HTMLElement;
     fetchedArabicVerses: Set<string> = new Set(); // Cache to track which verses we've already fetched
+    fetchedTranslationVerses: Set<string> = new Set(); // Cache to track which translation verses we've already fetched
 
     constructor(app: App, plugin: QuranLookupPlugin, editor: Editor) {
         super(app);
         this.plugin = plugin;
         this.editor = editor;
-        this.setPlaceholder("Enter text to search for in the Quran...");
+        this.setPlaceholder("Enter text to search for in the Quran or Translation...");
         
         // Create footer container
         const footerEl = this.modalEl.createDiv({ cls: 'search-results-footer' });
@@ -290,7 +291,7 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
             this.searchArabicCheckbox.checked = this.plugin.settings.searchArabicEdition;
             
             const label = checkboxContainer.createEl('label');
-            label.textContent = 'Search Arabic Edition';
+            label.textContent = 'Search Arabic Quran';
             
             // Add search button
             const searchButton = createEl('button', {
@@ -363,7 +364,13 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
         if (newPage >= 1 && newPage <= this.totalPages) {
             this.currentPage = newPage;
             this.updatePaginationDisplay();
-            this.fetchArabicVersesForCurrentPage();
+
+            // if we aren't searching Arabic we need to fetch the arabic
+            if (!this.plugin.settings.searchArabicEdition) {
+                this.fetchArabicVersesForCurrentPage();
+            } else { // otherwise we need to fetch the translation
+                this.fetchTranslationVersesForCurrentPage();
+            }
         }
     }
 
@@ -372,6 +379,18 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
             throw new Error("Arabic offline data not available");
         }
         return await this.plugin.searchOfflineArabic(query);
+    }
+
+    async performTranslationOfflineSearch(query: string): Promise<SearchMatch[]> {
+        const edition = Translations[this.plugin.settings.translatorLanguage][this.plugin.settings.translatorIndex].identifier;
+        const offlineData = this.plugin.offlineData[edition];
+        
+        if (!offlineData) {
+            throw new Error(`No offline data available for edition: ${edition}`);
+        }
+
+        // Use the plugin's existing search method for translations
+        return this.plugin.searchOfflineTranslation(query);
     }
 
     async performSearch() {
@@ -386,9 +405,11 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
             
             // Clear the cache when performing a new search
             this.fetchedArabicVerses.clear();
+            this.fetchedTranslationVerses.clear();
 
             let translationResults: SearchMatch[] = [];
             
+            // Perform Arabic search if Checkbox enabled
             if (this.plugin.settings.searchArabicEdition && this.plugin.offlineData?.['ar.quran-simple']) {
                 try {
                     translationResults = await this.performArabicOfflineSearch(query);
@@ -398,25 +419,32 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
                     return;
                 }
             } else {
-                const editions = [
-                    this.plugin.settings.translatorLanguage + "." + 
-                    Translations[this.plugin.settings.translatorLanguage][this.plugin.settings.translatorIndex].identifier.split('.')[1]
-                ];
+                // Check if we have offline data for the requested edition
+                const edition = Translations[this.plugin.settings.translatorLanguage][this.plugin.settings.translatorIndex].identifier;
+                const hasOfflineData = this.plugin.offlineData?.[edition];
 
-                if (this.plugin.settings.searchArabicEdition) {
-                    editions.push("ar.quran-simple");
-                }
-
-            // Initial search for translations and Arabic text if enabled
-                const results = await Promise.all(
-                    editions.map(edition =>
+                if (hasOfflineData) {
+                    try {
+                        translationResults = await this.performTranslationOfflineSearch(query);
+                    } catch (error) {
+                        console.error("Error in offline translation search, falling back to online:", error);
+                        // Fall back to online search
+                        const results = await Promise.all([
+                            fetch(`http://api.alquran.cloud/v1/search/${encodeURIComponent(query)}/all/${edition}`)
+                                .then(res => res.json())
+                                .catch(error => ({ code: 500, error: error.message }))
+                        ]);
+                        translationResults = results[0].code === 200 ? results[0].data.matches : [];
+                    }
+                } else {
+                    // Perform online API translation search
+                    const results = await Promise.all([
                         fetch(`http://api.alquran.cloud/v1/search/${encodeURIComponent(query)}/all/${edition}`)
                             .then(res => res.json())
                             .catch(error => ({ code: 500, error: error.message }))
-                    )
-                );
-
-                translationResults = results[0].code === 200 ? results[0].data.matches : [];
+                    ]);
+                    translationResults = results[0].code === 200 ? results[0].data.matches : [];
+                }
             }
 
             if (translationResults.length === 0) {
@@ -431,8 +459,11 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
             this.currentPage = 1;
             this.totalPages = Math.ceil(this.searchResults.length / this.resultsPerPage);
             
+            // If not in Arabic search mode, fetch Arabic verses to accompany translations
             if (!this.plugin.settings.searchArabicEdition) {
                 await this.fetchArabicVersesForCurrentPage();
+            } else { // If in Arabic search mode, fetch translation verses to accompany Arabic
+                await this.fetchTranslationVersesForCurrentPage();
             }
             this.updatePaginationDisplay();
             
@@ -514,9 +545,89 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
         }
     }
 
+    async fetchTranslationVersesForCurrentPage() {
+        if (!this.plugin.settings.searchArabicEdition) {
+            return; // Translation text already included in search results
+        }
+
+        try {
+            const startIdx = (this.currentPage - 1) * this.resultsPerPage;
+            const endIdx = Math.min(startIdx + this.resultsPerPage, this.searchResults.length);
+            const currentPageResults = this.searchResults.slice(startIdx, endIdx);
+
+            // Filter out verses we've already fetched
+            const unfetchedResults = currentPageResults.filter(match => {
+                const verseKey = `${match.surah.number}:${match.numberInSurah}`;
+                return !this.fetchedTranslationVerses.has(verseKey)
+            });
+
+            if (unfetchedResults.length === 0) {
+                return; // All verses for this page are already fetched
+            }
+
+            // Check if we're in offline mode and have local data
+            const edition = Translations[this.plugin.settings.translatorLanguage][this.plugin.settings.translatorIndex].identifier;
+            //const edition = `${this.plugin.settings.translatorLanguage}.${this.plugin.settings.translatorIndex}`;
+            const offlineMode = this.plugin.settings.offlineMode && this.plugin.offlineData?.[edition];
+
+            if (offlineMode) {
+                // Use local data for translation verses
+                unfetchedResults.forEach(match => {
+                    const verseKey = `${match.surah.number}:${match.numberInSurah}`;
+                    const localVerse = this.plugin.offlineData?.[edition]?.data?.surahs?.[match.surah.number - 1]?.ayahs?.find(
+                        verse => verse.numberInSurah === match.numberInSurah
+                    );
+                    if (localVerse?.text) {
+                        match.arabicText = match.text;
+                        match.text = localVerse.text;
+                        this.fetchedTranslationVerses.add(verseKey);
+                    }
+                });
+                this.refreshSuggestions();
+                return;
+            }
+
+            // If not in offline mode or no local data, proceed with API calls
+            // Create an array of promise factory functions for unfetched verses
+            const fetchPromises = unfetchedResults.map(match => () => {
+                const verseKey = `${match.surah.number}:${match.numberInSurah}`;
+                return fetch(`http://api.alquran.cloud/v1/ayah/${match.surah.number}:${match.numberInSurah}/${edition}`)
+                    .then(res => res.json())
+                    .then(data => ({ match, data, verseKey }) as FetchResult & { verseKey: string })
+                    .catch(error => ({ match, error, verseKey }) as FetchResult & { verseKey: string });
+            });
+
+            // Use rate limiting to fetch translation verses
+            const results = await rateLimit<FetchResult & { verseKey: string }>(fetchPromises, 3, 1000);
+
+            // Process results and update cache
+            results.forEach((result) => {
+                if (result.data?.code === 200) {
+                    result.match.arabicText = result.match.text;
+                    result.match.text = result.data.data.text;
+                    this.fetchedTranslationVerses.add(result.verseKey);
+                } else if (result.error) {
+                    console.error(`Error fetching translation verse for ${result.match.surah.number}:${result.match.numberInSurah}:`, result.error);
+                }
+            });
+
+            this.refreshSuggestions();
+        } catch (error) {
+            console.error("Error fetching translation verses:", error);
+            new Notice("Error fetching some translation verses");
+        }
+    }
+
     getSuggestions(query: string): SearchMatch[] {
         // If no query, return an empty array
-        if (!query) return [];
+        if (!query) {
+          this.searchResults = [];
+          this.suggestions = [];
+          this.fetchedArabicVerses.clear();
+          this.fetchedTranslationVerses.clear();
+          this.currentPage = 1;
+          return [];
+        }
 
         // Return only the current page of results
         const startIdx = (this.currentPage - 1) * this.resultsPerPage;
@@ -539,7 +650,8 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
         textEl.setText(match.text);
 
         if (match.arabicText) {
-            const arabicEl = el.createEl("div", { cls: "suggestion-arabic" });
+            const arabicEl = el.createEl("div", { cls: "quran-arabic" });
+            arabicEl.style.marginTop = "10px";
             arabicEl.setText(match.arabicText);
         }
 
@@ -554,9 +666,25 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
     }
 
     refreshSuggestions() {
-        this.suggestions = this.getSuggestions(this.inputEl.value);
-        // @ts-ignore: Private method exists in SuggestModal
-        super.updateSuggestions();
+      const query = this.inputEl.value.trim();
+    
+      // If query is empty, clear search results completely
+      if (!query) {
+          this.searchResults = [];
+          this.suggestions = [];
+          this.fetchedArabicVerses.clear();
+          this.fetchedTranslationVerses.clear();
+          this.currentPage = 1;
+          // @ts-ignore: Private method exists in SuggestModal
+          super.updateSuggestions();
+          return;
+      }
+  
+      // Perform search if query is not empty
+      this.suggestions = this.getSuggestions(query);
+      
+      // @ts-ignore: Private method exists in SuggestModal
+      super.updateSuggestions();
     }
 
     setSelectedItem(index: number, scrollIntoView = false) {
@@ -603,6 +731,8 @@ export default class QuranLookupPlugin extends Plugin {
   surahList: string[];
   fuse: any;
   offlineData: { [key: string]: QuranData } = {};
+  private preprocessedArabicData: any[] = [];
+  private preprocessedTranslationData: any[] = [];
 
   async onload() {
     await this.loadSettings();
@@ -1098,10 +1228,9 @@ export default class QuranLookupPlugin extends Plugin {
 
       // Check if we have offline data
       const arabicData = await this.loadOfflineData(arabicEdition);
-      const translationData = translationEdition 
-        ? await this.loadOfflineData(translationEdition)
-        : null;
+      const translationData = translationEdition ? await this.loadOfflineData(translationEdition) : null;
 
+      // if we don't have offline data for Arabic, fetch it
       if (!arabicData) {
         console.log('Downloading Arabic Quran data...');
         const arabicResponse = await this.fetchWithRetry(`https://api.alquran.cloud/v1/quran/${arabicEdition}`);
@@ -1114,6 +1243,7 @@ export default class QuranLookupPlugin extends Plugin {
         this.offlineData[arabicEdition] = arabicData;
       }
 
+      // if we don't have offline data for translation, fetch it
       if (translationEdition && !translationData) {
         console.log(`Downloading translation data (${translationEdition})...`);
         const translationResponse = await this.fetchWithRetry(`https://api.alquran.cloud/v1/quran/${translationEdition}`);
@@ -1128,6 +1258,18 @@ export default class QuranLookupPlugin extends Plugin {
     } catch (error) {
       console.error('Failed to ensure offline data:', error);
       throw error;
+    }
+
+    // After loading offline arabic data, preprocess it
+    if (this.offlineData['ar.quran-simple']) {
+      this.preprocessedArabicData = this.preprocessArabicData(this.offlineData['ar.quran-simple']);
+    }
+    
+    // Preprocess translation data if we have it
+    if (this.settings.includeTranslation && translationEdition != null) {
+      if (this.offlineData[translationEdition]) {
+        this.preprocessedTranslationData = this.preprocessTranslationData(this.offlineData[translationEdition]);
+      }
     }
   }
 
@@ -1236,13 +1378,13 @@ export default class QuranLookupPlugin extends Plugin {
     }
   }
 
-  // Helper method to remove diacritical marks from Arabic text
+  // Offline Arabic search: Helper method to remove diacritical marks from Arabic text
   private removeTashkeel(text: string): string {
     const tashkeelRegex = /[\u0617-\u061A\u064B-\u0652]/g;
     return text.replace(tashkeelRegex, '');
   }
 
-  // Helper method to normalize Arabic characters
+  // Offline Arabic search: Helper method to normalize Arabic characters
   private normalizeArabic(text: string): string {
     return text
       .replace(/[أإآا]/g, 'ا')
@@ -1251,7 +1393,7 @@ export default class QuranLookupPlugin extends Plugin {
       .replace(/ـ/g, '');
   }
 
-  // Helper method to preprocess Arabic data for searching
+  // Offline Arabic search: Helper method to preprocess Arabic data for searching
   private preprocessArabicData(quranData: QuranData): any[] {
     return quranData.data.surahs.flatMap(surah =>
       surah.ayahs.map(ayah => ({
@@ -1267,7 +1409,7 @@ export default class QuranLookupPlugin extends Plugin {
     );
   }
 
-  // Main method for performing offline Arabic search
+  // Offline Arabic search: Main method for performing offline Arabic search
   async searchOfflineArabic(query: string, limit = 3000): Promise<SearchMatch[]> {
     if (!this.offlineData['ar.quran-simple']) {
       throw new Error('Arabic edition not available offline');
@@ -1275,7 +1417,11 @@ export default class QuranLookupPlugin extends Plugin {
 
     const originalQuery = this.normalizeArabic(query);
     const queryWithoutTashkeel = this.removeTashkeel(originalQuery);
-    const preprocessedData = this.preprocessArabicData(this.offlineData['ar.quran-simple']);
+
+    // Use the preprocessed data directly
+    if (this.preprocessedArabicData.length === 0) {
+      this.preprocessedArabicData = this.preprocessArabicData(this.offlineData['ar.quran-simple']);
+    }
 
     const options = {
       keys: ['normalizedText', 'textWithoutTashkeel'],
@@ -1289,7 +1435,7 @@ export default class QuranLookupPlugin extends Plugin {
       }
     };
 
-    const fuse = new Fuse(preprocessedData, options);
+    const fuse = new Fuse(this.preprocessedArabicData, options);
     
     const results = fuse.search({
       $or: [  // Using $or for matching
@@ -1322,6 +1468,69 @@ export default class QuranLookupPlugin extends Plugin {
       }));
   }
 
+  // Helper method to preprocess translation data for searching
+  private preprocessTranslationData(translationData: QuranData): any[] {
+    return translationData.data.surahs.flatMap(surah =>
+        surah.ayahs.map(ayah => ({
+            number: ayah.number,
+            text: ayah.text,
+            originalText: ayah.text,
+            numberInSurah: ayah.numberInSurah,
+            surahNumber: surah.number,
+            surahName: surah.name,
+            surahEnglishName: surah.englishName
+        }))
+    );
+  }
+
+  // Offline Translation search: Main method for performing offline translation search
+  async searchOfflineTranslation(query: string, limit = 3000): Promise<SearchMatch[]> {
+    const translationEdition = Translations[this.settings.translatorLanguage][this.settings.translatorIndex].identifier;
+    
+    if (!this.offlineData[translationEdition]) {
+        throw new Error(`Translation edition ${translationEdition} not available offline`);
+    }
+
+    // Use the preprocessed data directly
+    if (this.preprocessedTranslationData.length === 0) {
+      this.preprocessedTranslationData = this.preprocessTranslationData(this.offlineData[translationEdition]);
+    }
+
+    const options = {
+        includeScore: true,
+        keys: ['text'],
+        threshold: 0.1,
+        ignoreLocation: true,
+        minMatchCharLength: 3,
+        useExtendedSearch: true
+    };
+
+    const fuse = new Fuse(this.preprocessedTranslationData, options);
+    const results = fuse.search(query);
+
+    return results
+        .filter(result => result.score && result.score < 0.99)
+        .slice(0, limit)
+        .map(result => ({
+            number: result.item.number,
+            text: result.item.text,
+            numberInSurah: result.item.numberInSurah,
+            surah: {
+                number: result.item.surahNumber,
+                name: result.item.surahName,
+                englishName: result.item.surahEnglishName,
+                englishNameTranslation: result.item.surahName,
+                revelationType: 'Meccan'
+            },
+            edition: {
+                identifier: translationEdition,
+                language: this.settings.translatorLanguage,
+                name: Translations[this.settings.translatorLanguage][this.settings.translatorIndex].name,
+                englishName: Translations[this.settings.translatorLanguage][this.settings.translatorIndex].name,
+                type: 'translation'
+            }
+        }));
+  }
 }  
 
 class QuranLookupSettingTab extends PluginSettingTab {
@@ -1426,19 +1635,6 @@ class QuranLookupSettingTab extends PluginSettingTab {
           });
       });
     }
-
-    /*new Setting(containerEl)
-      .setName('Wrap Quran Arabic in Code Snippet')
-      .setDesc('If true, wraps the Arabic verse in backticks to use code formatting')
-      .addToggle((toggle) => {
-        toggle
-          .setValue(this.plugin.settings.wrapQuranInCode)
-          .onChange(async (value) => {
-            this.plugin.settings.wrapQuranInCode = value;
-            await this.plugin.saveSettings();
-            this.display();
-          });
-      });*/
 
     new Setting(containerEl)
       .setName('Arabic Styling Options')
@@ -1593,7 +1789,7 @@ class QuranLookupSettingTab extends PluginSettingTab {
 
     // Search Arabic Edition Setting
     new Setting(containerEl)
-      .setName('Search Arabic Edition')
+      .setName('Search Arabic Quran')
       .setDesc('If true, searches the Arabic edition of the Quran')
       .addToggle((toggle) => {
         toggle
