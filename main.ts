@@ -1,5 +1,6 @@
 import { App, Editor, MarkdownView, Plugin, PluginSettingTab, Setting, Notice, MarkdownRenderer, SuggestModal} from "obsidian";
 import Fuse from "fuse.js";
+import { DraggableKeyboard } from './DraggableKeyboard';
 // Remember to rename these classes and interfaces!
 
 const Translations: Record<string, { identifier: string; name: string }[]> = {
@@ -216,12 +217,14 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
     searchResults: SearchMatch[] = [];
     suggestions: SearchMatch[] = [];
     searchArabicCheckbox: HTMLInputElement;
+    arabicKeyboardButton: HTMLButtonElement;
     currentPage = 1;
     resultsPerPage = 10;
     totalPages = 1;
     paginationEl: HTMLElement;
     fetchedArabicVerses: Set<string> = new Set(); // Cache to track which verses we've already fetched
     fetchedTranslationVerses: Set<string> = new Set(); // Cache to track which translation verses we've already fetched
+    private keyboard: DraggableKeyboard;
 
     constructor(app: App, plugin: QuranLookupPlugin, editor: Editor) {
         super(app);
@@ -232,6 +235,52 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
         // Create footer container
         const footerEl = this.modalEl.createDiv({ cls: 'search-results-footer' });
         
+        // Create search controls container
+        const controlsContainer = this.modalEl.createDiv({ cls: 'search-controls-container' });
+        
+        // Create checkbox container
+        const checkboxContainer = controlsContainer.createDiv({ cls: 'search-arabic-container' });
+
+        // Create keyboard container with inline styles
+        const keyboardContainer = this.modalEl.createDiv();
+        keyboardContainer.style.position = 'absolute';
+        keyboardContainer.style.backgroundColor = 'var(--background-primary)';
+        keyboardContainer.style.border = '1px solid var(--background-modifier-border)';
+        keyboardContainer.style.borderRadius = '6px';
+        keyboardContainer.style.padding = '10px';
+        keyboardContainer.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+        keyboardContainer.style.zIndex = '1000';
+        keyboardContainer.style.left = '50%';
+        keyboardContainer.style.transform = 'translateX(-50%)';
+        keyboardContainer.style.width = '90%';
+        keyboardContainer.style.maxWidth = '600px';
+        keyboardContainer.style.display = 'none';
+
+        this.keyboard = new DraggableKeyboard(keyboardContainer, (key: string) => {
+          const textarea = this.inputEl;
+          const start = textarea.selectionStart ?? textarea.value.length; 
+          const end = textarea.selectionEnd ?? textarea.value.length;
+          const content = textarea.value;
+      
+          if (key === 'Backspace') {
+              // If there's at least one character before the cursor, remove it
+              if (start > 0) {
+                  // Remove the character before `start`
+                  textarea.value = content.substring(0, start - 1) + content.substring(end);
+                  // Update the cursor position to reflect the removal
+                  textarea.selectionStart = textarea.selectionEnd = start - 1;
+              }
+          } else {
+              // For other keys, just insert them as before
+              textarea.value = content.substring(0, start) + key + content.substring(end);
+              textarea.selectionStart = textarea.selectionEnd = start + key.length;
+          }
+      
+          // Refocus the textarea after the operation
+          textarea.focus();
+       });
+      
+
         // Create pagination controls container
         const paginationControlsEl = footerEl.createDiv({ cls: 'pagination-controls' });
         
@@ -241,6 +290,7 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
         this.paginationEl.style.justifyContent = "center";
         this.paginationEl.style.gap = "10px";
         this.paginationEl.style.marginTop = "10px";
+        this.paginationEl.style.width = "100%";
         
         const prevButton = this.paginationEl.createEl("button", { text: "Previous" });
         const pageInfo = this.paginationEl.createSpan();
@@ -292,7 +342,33 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
             
             const label = checkboxContainer.createEl('label');
             label.textContent = 'Search Arabic Quran';
+
+            // Add keyboard button
+            const keyboardButton = checkboxContainer.createEl('button', { cls: 'keyboard-button', text: '' });
+            keyboardButton.textContent = 'ar ⌨';
             
+            // Toggle keyboard visibility
+            let keyboardVisible = false;
+            keyboardButton.addEventListener('click', () => {
+                keyboardVisible = !keyboardVisible;
+                if (keyboardVisible) {
+                    this.keyboard.show();
+                    this.keyboard.createKeyboard({
+                        //row1: ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '٠', '-', '='],
+                        row2: ['ض', 'ص', 'ث', 'ق', 'ف', 'غ', 'ع', 'ه', 'خ', 'ح', 'ج', 'د', '\\'],
+                        row3: ['ش', 'س', 'ي', 'ب', 'ل', 'ا', 'ت', 'ن', 'م', 'ك', 'ط'],
+                        row4: ['ئ', 'ء', 'ؤ', 'ر', 'لا', 'ى', 'ة', 'و', 'ز', 'ظ'],
+                        //shiftRow1: ['!', '@', '#', '$', '%', '^', '&', '*', ')', '(', '_', '+'],
+                        shiftRow2: ['َ', 'ً', 'ُ', 'ٌ', 'لإ', 'إ', '\'', '÷', '×', '؛', '<', '>', '|'],
+                        shiftRow3: ['ِ', 'ٍ', ']', '[', 'لأ', 'أ', 'ـ', '،', '/', ':'],
+                        shiftRow4: ['~', 'ْ', '{', '}', 'لآ', 'آ', 'ّ', ',', '.', 'ذ']
+                    });
+                    this.inputEl.focus();
+                } else {
+                    this.keyboard.hide();
+                }
+            });
+
             // Add search button
             const searchButton = createEl('button', {
                 cls: 'mod-cta',
@@ -319,6 +395,12 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
                 }
             });
         }, 50);
+    }
+
+    onClose() {
+        if (this.keyboard) {
+            this.keyboard.destroy();
+        }
     }
 
     updateSearchCount(countEl: HTMLSpanElement) {
