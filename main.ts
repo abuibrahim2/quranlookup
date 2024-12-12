@@ -1886,6 +1886,9 @@ class QuranLookupSettingTab extends PluginSettingTab {
             });
         });
     }
+
+    // Adding the preview section
+    this.addPreview(containerEl);
     
     // Offline Mode Setting
     new Setting(containerEl)
@@ -1932,9 +1935,6 @@ class QuranLookupSettingTab extends PluginSettingTab {
         });
       }
     }
-
-    // Adding the preview section
-    this.addPreview(containerEl);
   }
 
   async addPreview(containerEl: HTMLElement) {
