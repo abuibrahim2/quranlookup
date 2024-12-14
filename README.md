@@ -35,6 +35,15 @@ It looks up based on `Surah-Number:Ayah-Number` or `Surah-Name:Ayah-Number` synt
 
 ![obsidian quran lookup range](/docs/quran-lookup-chained.gif?raw=true)
 
+- Searching for verses with a specific word or phrase in a translation
+![obsidian quran lookup search](/docs/translation-search.png?raw=true)
+
+- Searching for verses with a specific word or phrase in the Arabic text
+![obsidian quran lookup arabic search](/docs/arabic-search.png?raw=true)
+
+- Using the draggable Arabic floating keyboard to insert Arabic text
+![obsidian quran lookup keyboard](/docs/draggable-ar-keyboard.png?raw=true)
+
 ### New in Version 0.2
 A few new features have been added in v0.2. 
 1. The ability to hide or show the translation, useful for those who just want the arabic to be displayed
@@ -42,6 +51,12 @@ A few new features have been added in v0.2.
 3. Arabic Styling Options with CSS so that the Arabic text can display using more appropriate font-family and font-size. This adds the choice for a few nicer looking arabic fonts, as well as font-size selection options
 4. Display Container types, text-only, markdown table, and additional Obsidian Callout customization
 5. Live Preview in the Settings screen so you can see what a setting change would look like in Obsidian
+
+### New in Version 0.3
+1. Support for Offline Mode for downloading and retrieving verses and translations from the locally downloaded full Quran & Translations
+2. Add a _NEW_ command to search for a verse using search API (displaying results in a dialog) or Offline store and insert into note
+3. Added more arabic font options
+4. Added error notification for when'surah not found' or 'ayah' index out of range
 
 ## Settings
 This plugin has some customizations: in `Community Plugins > Installed Plugins > QuranLookup (Options)`
@@ -139,6 +154,9 @@ Encapsulates the verse in an obsidian callout like previously except this time a
 ### Live Preview
 Now there is a _Live Preview_ shown at the bottom of the Settings Page so you can see how your selections will look when applied on your page.
 
+### Offline Mode
+If true, the plugin downloads the Quran and selected translation at onces and uses that data for subsequent retrieval and search requests. If false, the plugin uses the API to retrieve data for Quran verses
+
 ## Attributions
 ### The Quran API and Source(s)
 The Quran verses are retrieved from
@@ -156,7 +174,7 @@ The lookup uses api.alquran.cloud API to lookup the verses by surah and verse nu
 For the fuzzy name search, it uses a simple index file surahSlim.json and fuse.js to find the closest sura name and retrieve it's index number.
 
 ## Future Feature Ideas (logged in [project Issues](https://github.com/abuibrahim2/quranlookup/issues))
-- [ ] Add error notification for 'surah not found' or 'ayah index out of range' (currently doesn't do anything if invalid string is attempted to be upon)
+- [x] Add error notification for 'surah not found' or 'ayah index out of range' (currently doesn't do anything if invalid string is attempted to be upon)
 - [x] Show the translator name in the settings
 - [ ] Toggle Display of verses callout sections: e.g. show Arabic Only, Translation Only
 - [x] Right-To-Left alignment for Arabic text
@@ -166,8 +184,8 @@ For the fuzzy name search, it uses a simple index file surahSlim.json and fuse.j
 - [ ] Give option to show dialog with preview and style options each time (like the Admonition plugins 'Insert Admonition' dialog)
 - [ ] Add option to toggle to use 'Admonition' style syntax instead of obsidian call-out style
 - [ ] Provide external links to ayah in websites like quran.com
-- [ ] Add "Offline Mode" option which downlaods and retrieves verses and translations from the locally saved vault rather than calling API
-- [ ] Add command to search for an ayah using search API (displaying results in a dialog)
+- [x] Add "Offline Mode" option which downloads and retrieves verses and translations from the locally saved vault rather than calling API
+- [x] Add command to search for an ayah using search API (displaying results in a dialog)
 - [ ] Add audio playback capabilities to playback the verse
 - Other ideas?... feel free [to suggest](https://github.com/abuibrahim2/quranlookup/issues)!
 ## Manually installing the plugin
