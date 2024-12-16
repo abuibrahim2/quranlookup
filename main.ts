@@ -247,7 +247,7 @@ class QuranSearchModal extends SuggestModal<SearchMatch> {
         keyboardContainer.style.backgroundColor = 'var(--background-primary)';
         keyboardContainer.style.border = '1px solid var(--background-modifier-border)';
         keyboardContainer.style.borderRadius = '6px';
-        keyboardContainer.style.padding = '10px';
+        //keyboardContainer.style.padding = '10px';
         keyboardContainer.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
         keyboardContainer.style.zIndex = '1000';
         keyboardContainer.style.left = '50%';
