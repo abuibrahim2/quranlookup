@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-quran-lookup",
 	"name": "Quran Lookup",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"minAppVersion": "0.14.0",
 	"description": "This is a Quran Lookup plugin for Obsidian. This replaces chapter:verse shorthand with verse text in arabic and translation.",
 	"author": "AbuIbrahim2",

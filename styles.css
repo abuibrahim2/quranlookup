@@ -234,3 +234,84 @@ If your plugin does not need CSS, delete this file.
     min-width: 100px;
     text-align: center;
   }
+
+  .container {
+    touch-action: none; /* Prevent touch gestures like scrolling from interfering */
+  }
+
+  .draggable-header {
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: bold;
+    border-bottom: 1px solid var(--background-modifier-border);
+    padding: 5px 10px;
+    cursor: move;
+  }
+
+  /* For responsive design */
+
+  .draggable-keyboard-container {
+    position: fixed; /* Float the keyboard */
+    bottom: 0; /* Stick to the bottom */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%);
+    width: 100%; /* Full screen width */
+    max-width: 600px; /* Restrict on larger screens */
+    background-color: #fff;
+    border-radius: 6px 6px 0 0;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    overflow: hidden; /* Prevent content overflow */
+    box-sizing: border-box;
+    z-index: 1000;
+}
+
+.keyboard-section {
+    display: flex;
+    flex-direction: column; /* Stack rows vertically */
+    gap: 4px; /* Gap between rows */
+    padding: 10px;
+}
+
+.keyboard-section div { /* Each row */
+    display: flex;
+    justify-content: space-between; /* Evenly distribute keys */
+    gap: 2px; /* Small gap between keys */
+}
+
+.keyboard-section button {
+    flex: 1 1 auto; /* Make all buttons grow/shrink equally */
+    min-width: 8%; /* Each button takes a portion of the row */
+    height: 36px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+@media screen and (max-width: 768px) { /* Tablets and smaller screens */
+    .keyboard-section button {
+        min-width: 6%;
+        height: 32px;
+        font-size: 12px;
+    }
+}
+
+@media screen and (max-width: 480px) { /* Mobile phones */
+    .keyboard-section button {
+        min-width: 5%;
+        height: 28px;
+        font-size: 10px;
+    }
+}
+
+@media screen and (max-width: 360px) { /* Very small devices */
+    .keyboard-section button {
+        min-width: 4%;
+        height: 24px;
+        font-size: 8px;
+    }
+}
