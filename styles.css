@@ -14,58 +14,89 @@ If your plugin does not need CSS, delete this file.
 
   @font-face {
     font-family: 'me_quran';
-    src: url('https://cdn.alquran.cloud/public/fonts/me_quran-webfont.otf') format('opentype');
+    src: url('https://web.archive.org/web/2024id_/https://cdn.alquran.cloud/public/fonts/me_quran-webfont.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
   }
   
   @font-face {
     font-family: 'NooreHidayah';
-    src: url('https://cdn.alquran.cloud/public/fonts/noorehidayat.ttf') format('truetype');
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/noorehidayat.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
   }
   
   @font-face {
     font-family: 'Uthmani';
-    src: url('https://cdn.alquran.cloud/public/fonts/uthman_tn09.otf') format('opentype');
+    src: url('https://web.archive.org/web/2024id_/https://cdn.alquran.cloud/public/fonts/uthman_tn09.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
   }
 
   @font-face {
     font-family: 'Quran';
-    src: url('https://cdn.alquran.cloud/public/fonts/QUR_STD.TTF');
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/al-qalam-quran-majeed.ttf') format('truetype');
   }
 
-  @font-face {
-    font-family: 'kfc_naskh';
-    src: url('https://cdn.alquran.cloud/public/fonts/kfc_naskh-webfont.ttf');
-  }
 
   @font-face {
     font-family: 'scheherazade';
-    src: url('https://cdn.alquran.cloud/public/fonts/scheherazade-webfont.ttf');
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/scheherazade-regular.ttf') format('truetype');
   }
 
   @font-face {
     font-family: 'Kitab-Regular';
-    src: url('https://cdn.alquran.cloud/public/fonts/Kitab-Regular.ttf');
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/kitab-regular.ttf') format('truetype');
   }
 
   @font-face {
-    font-family: 'pdms_saleem';
-    src: url('https://cdn.alquran.cloud/public/fonts/pdms_saleem-webfont.ttf');
+    font-family: 'AmiriQuran';
+    src: url('https://fonts.gstatic.com/s/amiriquran/v19/_Xmo-Hk0rD6DbUL4_vH8Zq5t.ttf') format('truetype');
   }
 
   @font-face {
-    font-family: 'xb_zar-webfont';
-    src: url('https://cdn.alquran.cloud/public/fonts/xb_zar-webfont.ttf');
+    font-family: 'HafsUthmanic';
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/hafs-uthmanic-v14-full.ttf') format('truetype');
+  }
+
+  @font-face {
+    font-family: 'ScheherazadeNew';
+    src: url('https://fonts.gstatic.com/s/scheherazadenew/v21/4UaZrFhTvxVnHDvUkUiHg8jprP4DCwM.ttf') format('truetype');
+  }
+
+  @font-face {
+    font-family: 'NotoNaskh';
+    src: url('https://fonts.gstatic.com/s/notonaskharabic/v44/RrQ5bpV-9Dd1b1OAGA6M9PkyDuVBePeKNaxcsss0Y7bwvc5krA.ttf') format('truetype');
+  }
+
+  @font-face {
+    font-family: 'Lateef';
+    src: url('https://fonts.gstatic.com/s/lateef/v35/hESw6XVnNCxEvkbMpg.ttf') format('truetype');
+  }
+
+  @font-face {
+    font-family: 'Harmattan';
+    src: url('https://fonts.gstatic.com/s/harmattan/v24/goksH6L2DkFvVvRp9XpTSw.ttf') format('truetype');
+  }
+
+  @font-face {
+    font-family: 'SahlNaskh';
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/sahlnaskh-regular-full.ttf') format('truetype');
+  }
+
+  @font-face {
+    font-family: 'HafsNastaleeq';
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/hafs-nastaleeq-ver10.ttf') format('truetype');
+  }
+
+  @font-face {
+    font-family: 'MeQuran2';
+    src: url('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/fonts/me-quran2-full.ttf') format('truetype');
   }
 
   .quran-arabic {
     background-color: transparent !important;
-    font-family: 'me_quran', 'Segoe UI Fixed', monospace;
+    font-family: 'me_quran', 'scheherazade', 'Amiri', 'Geeza Pro', 'Noto Naskh Arabic', serif;
     font-size: 24px !important;
     line-height: 200%;
     direction: rtl;

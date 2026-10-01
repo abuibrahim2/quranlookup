@@ -865,7 +865,8 @@ export default class QuranLookupPlugin extends Plugin {
       name: "Retrieve Ayaat",
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         // tokenize verse shorthand
-        const ayaat = editor.getSelection().split(" ").filter(Boolean);
+        // split on any whitespace so multi-line selections work
+        const ayaat = editor.getSelection().split(/\s+/).filter(Boolean);
         let totalT = "";
         let verseText = "";
 
@@ -897,6 +898,8 @@ export default class QuranLookupPlugin extends Plugin {
           }
           totalT += verseText + "\n";
         }
+        // don't wipe the selection if nothing was fetched
+        if (!totalT) return;
         editor.replaceSelection(totalT);
       },
     });
@@ -948,13 +951,20 @@ export default class QuranLookupPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
+  // API text can carry trailing newlines, which break callouts and tables
+  stripNewlines(txtVal: string) {
+    return String(txtVal).replace(/[\r\n]+/g, " ").trim();
+  }
+
   handleParens(txtVal: string, removeParens: boolean) {
+    const cleaned = this.stripNewlines(txtVal);
     return removeParens
-      ? txtVal
+      ? cleaned
           .replace(/ *\([^)]*\)*/g, "") // remove ()
           .replace(/ \[(.+?)\]/g, " ") // remove []
           .replace(/\s+([.,!":])/g, "$1") // fix extra spaces near punctuations
-      : txtVal;
+          .trim()
+      : cleaned;
   }
 
   updateStyles() {
@@ -968,7 +978,7 @@ export default class QuranLookupPlugin extends Plugin {
             for (const rule of Array.from(rules)) { // Convert CSSRuleList to an array
                 // Find the .quran-arabic CSS rule
                 if ((rule as CSSStyleRule).selectorText === '.quran-arabic') {
-                    (rule as CSSStyleRule).style.fontFamily = `${this.settings.fontFamily}, 'Segoe UI Fixed', monospace`;
+                    (rule as CSSStyleRule).style.fontFamily = `${this.settings.fontFamily}, 'scheherazade', 'Amiri', 'Geeza Pro', 'Noto Naskh Arabic', serif`;
                     (rule as CSSStyleRule).style.fontSize = this.settings.fontSize;
                 }
             }
@@ -1008,7 +1018,7 @@ export default class QuranLookupPlugin extends Plugin {
             .table-cell-wrapper .esm-rtl,
             td.esm-rtl {
                 background-color: transparent !important;
-                font-family: ${this.settings.fontFamily}, 'Segoe UI Fixed', monospace;
+                font-family: ${this.settings.fontFamily}, 'scheherazade', 'Amiri', 'Geeza Pro', 'Noto Naskh Arabic', serif;
                 font-size: ${this.settings.fontSize} !important;
                 line-height: 200%;
                 direction: rtl;
@@ -1019,6 +1029,7 @@ export default class QuranLookupPlugin extends Plugin {
   }
 
   applyArabicStyle(txtVal: string, styleIndex: number)  {
+    txtVal = this.stripNewlines(txtVal);
     if (styleIndex == 1) {
       return `<span class="quran-arabic">${txtVal}</span>`;
     } else if (styleIndex == 2) {
@@ -1086,9 +1097,9 @@ export default class QuranLookupPlugin extends Plugin {
           result += "> [!" + calloutType + "]+ " + verseHeader + "\n";
           if (translationData) {
             const enText = this.handleParens(translationData.data.ayahs[0].text, this.settings.removeParens);
-            result += "> " + enText + "\n> " + arText + "\n>";
+            result += "> " + enText + "\n> " + arText;
           } else {
-            result += "> " + arText + "\n>";
+            result += "> " + arText;
           }
         } else {
           // Text Only
@@ -1125,7 +1136,7 @@ export default class QuranLookupPlugin extends Plugin {
         } else if (this.settings.displayTypeIndex === 2) {
           // TIP Callout
           const calloutType = this.settings.calloutType || 'tip';
-          result += "> [!" + calloutType + "]+ " + verseHeader + "\n> " + enText + "\n> " + arText + "\n>";
+          result += "> [!" + calloutType + "]+ " + verseHeader + "\n> " + enText + "\n> " + arText;
         } else {
           // Text Only
           result += `${verseHeader}\n${enText}\n` + arText + "\n";
@@ -1147,7 +1158,7 @@ export default class QuranLookupPlugin extends Plugin {
         } else if (this.settings.displayTypeIndex === 2) {
           // TIP Callout
           const calloutType = this.settings.calloutType || 'tip';
-          result += `> [!${calloutType}]+ ${verseHeader}\n> ` + arText + "\n>";
+          result += `> [!${calloutType}]+ ${verseHeader}\n> ` + arText;
         } else {
           // Text Only
           result += `${verseHeader}\n` + arText + "\n";
@@ -1207,7 +1218,7 @@ export default class QuranLookupPlugin extends Plugin {
               result += "> " + arText + "\n>\n";
             }
           }
-          result = result.trim();
+          result = result.trim().replace(/\n>$/, "");
         } else {
           // Text Only
           result += `${verseHeader}\n`;
@@ -1253,7 +1264,7 @@ export default class QuranLookupPlugin extends Plugin {
             const enText = this.handleParens(english.data.ayahs[i].text, this.settings.removeParens);
             result += `> ${enText}\n> ` + arText + "\n>\n";
           }
-          result = result.trim();
+          result = result.trim().replace(/\n>$/, "");
         } else {
           // Text Only
           result += `${verseHeader}\n`;
@@ -1276,7 +1287,7 @@ export default class QuranLookupPlugin extends Plugin {
           // Markdown Table
           result += `| ${verseHeader} |\n| ---- |\n`;
           for (let i = 0; i < arabic.data.ayahs.length; i++) {
-            const arText = arabic.data.ayahs[i].text;
+            const arText = this.stripNewlines(arabic.data.ayahs[i].text);
             result += "| " + arText + " |\n";
           }
         } else if (this.settings.displayTypeIndex === 2) {
@@ -1284,15 +1295,15 @@ export default class QuranLookupPlugin extends Plugin {
           const calloutType = this.settings.calloutType || 'tip';
           result += `> [!${calloutType}]+ ${verseHeader}\n`;
           for (let i = 0; i < arabic.data.ayahs.length; i++) {
-            const arText = arabic.data.ayahs[i].text;
+            const arText = this.stripNewlines(arabic.data.ayahs[i].text);
             result += "> " + arText + "\n>\n";
           }
-          result = result.trim();
+          result = result.trim().replace(/\n>$/, "");
         } else {
           // Text Only
           result += `${verseHeader}\n`;
           for (let i = 0; i < arabic.data.ayahs.length; i++) {
-            const arText = arabic.data.ayahs[i].text;
+            const arText = this.stripNewlines(arabic.data.ayahs[i].text);
             result += arText + "\n\n";
           }
           result = result.trim();
@@ -1779,11 +1790,17 @@ class QuranLookupSettingTab extends PluginSettingTab {
               'Uthmani': 'Uthmani',
               'Amiri': 'Amiri',
               'Quran': 'Quran',
-              'kfc_naskh': 'kfc_naskh',
               'scheherazade': 'scheherazade',
               'Kitab-Regular': 'Kitab-Regular',
-              'pdms_saleem': 'pdms_saleem',
-              'xb_zar-webfont': 'xb_zar-webfont',
+              'AmiriQuran': 'Amiri Quran',
+              'HafsUthmanic': 'Hafs Uthmanic',
+              'ScheherazadeNew': 'Scheherazade New',
+              'NotoNaskh': 'Noto Naskh',
+              'Lateef': 'Lateef',
+              'Harmattan': 'Harmattan',
+              'SahlNaskh': 'Sahl Naskh',
+              'HafsNastaleeq': 'Hafs Nastaleeq',
+              'MeQuran2': 'me_quran 2',
           })
           .setValue(this.plugin.settings.fontFamily)
           .onChange(async (value) => {
